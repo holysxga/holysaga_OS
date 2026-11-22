@@ -6,15 +6,16 @@
  * same markup, selection and activation behavior as the original five.
  *
  * Desktop: single click selects, double click opens (classic behaviour).
- * Touch: a single tap selects, a second tap opens. Keyboard: Enter/Space opens.
+ * Touch: a single tap opens — there is no hover to discover a second tap, and
+ * a tap that only selected would read as a broken icon. Keyboard: Enter/Space
+ * opens. No drag gesture is ever started from a shortcut, so a tap can never
+ * move an icon.
  */
 import { el } from "../core/dom.js";
+import { isCoarsePointer } from "../core/input.js";
 import { onLocaleChange, t } from "../i18n/index.js";
 
 const FRESH_MS = 5_000;
-
-const coarsePointer = () =>
-  window.matchMedia && window.matchMedia("(hover: none)").matches;
 
 export function createShortcuts({ root, apps, onOpen }) {
   const list = el("ul", { class: "shortcuts__list", role: "list" });
@@ -41,15 +42,15 @@ export function createShortcuts({ root, apps, onOpen }) {
         "aria-pressed": "false",
         on: {
           click: (event) => {
-            const wasSelected = selectedId === app.id;
             select(app.id);
             // Keyboard activation (Enter/Space) reports no click count.
             if (event.detail === 0) {
               onOpen(app.id);
               return;
             }
-            // Touch: the first tap selects, a second tap on the same icon opens.
-            if (coarsePointer() && wasSelected) onOpen(app.id);
+            // Touch: one tap is the whole gesture. The mouse keeps its
+            // select-then-double-click behaviour below.
+            if (isCoarsePointer()) onOpen(app.id);
           },
           dblclick: () => onOpen(app.id),
         },

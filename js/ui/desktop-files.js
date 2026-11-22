@@ -9,6 +9,11 @@
  * one file can never be collected twice. A rejected slot simply does not accept
  * it, and the icon stays where it was.
  *
+ * Touch has no drag: a tap selects the file, and the collection slot's own tap
+ * then dispatches the very same `holysaga:file-drop` event, so validation,
+ * refusal and progression stay in one place. Selecting a file never collects
+ * it; only choosing a slot does.
+ *
  * Payloads carry stable IDs, never the visible name, so translations can change
  * without breaking progression.
  *
@@ -17,6 +22,7 @@
  * while windows are open. It is a button, not a draggable icon.
  */
 import { el } from "../core/dom.js";
+import { isCoarsePointer } from "../core/input.js";
 import { onLocaleChange, t } from "../i18n/index.js";
 
 const DRAG_THRESHOLD = 5;
@@ -36,6 +42,8 @@ export function createDesktopFiles(options = {}) {
   let filesLayer = null;
   let drag = null;
   let destroyed = false;
+  /* The file chosen by a tap, waiting for the visitor to pick a slot. */
+  let selectedId = null;
 
   const iconPath = options.icon || "assets/icons/audio-file.svg";
 
@@ -64,12 +72,18 @@ export function createDesktopFiles(options = {}) {
 
   function paintFile(entry) {
     const name = fileLabel(entry);
+    const hint = isCoarsePointer() ? t("file.tapHint") : t("file.dragHint");
     entry.name.textContent = name;
-    entry.button.setAttribute(
-      "aria-label",
-      `${name}. ${t("file.dragHint")}`,
-    );
-    entry.button.title = `${name} — ${t("file.dragHint")}`;
+    entry.button.setAttribute("aria-label", `${name}. ${hint}`);
+    entry.button.title = `${name} — ${hint}`;
+  }
+
+  /** Visual selection only: choosing a file never collects it. */
+  function setSelected(id) {
+    selectedId = id && files.has(id) ? id : null;
+    for (const entry of files.values()) {
+      entry.button.classList.toggle("is-selected", entry.id === selectedId);
+    }
   }
 
   function addFile({ id, trackId, nameKey = "sacred.file.name" } = {}) {
@@ -118,13 +132,14 @@ export function createDesktopFiles(options = {}) {
 
     button.addEventListener("pointerdown", (event) => {
       if (event.button !== 0) return;
+      // Touch selects; there is no cursor to carry a ghost, and a finger that
+      // slides a little must not start a drag or lose the selection.
+      if (event.pointerType === "touch") return;
       beginDrag(entry, event);
     });
     // A click is only a selection; the file has nothing to open yet.
     button.addEventListener("click", () => {
-      for (const other of files.values()) {
-        other.button.classList.toggle("is-selected", other === entry);
-      }
+      setSelected(selectedId === entry.id ? null : entry.id);
     });
 
     return entry;
@@ -133,6 +148,7 @@ export function createDesktopFiles(options = {}) {
   function collectFile(id) {
     const entry = files.get(id);
     if (!entry) return false;
+    if (selectedId === id) selectedId = null;
     files.delete(id);
     entry.button.classList.add("is-collected");
     entry.button.disabled = true;
@@ -343,6 +359,37 @@ export function createDesktopFiles(options = {}) {
     return true;
   }
 
+  /**
+   * Tap-to-collect: hand the selected file to a collection slot using the same
+   * event drag-and-drop uses. The slot decides; a wrong slot refuses exactly as
+   * it does for a drop, and the file stays selected and on the desktop.
+   *
+   * @returns {boolean} whether a selected file was offered (accepted or not)
+   */
+  function tryCollectOnSlot(slot) {
+    const entry = selectedId ? files.get(selectedId) : null;
+    if (!entry || !slot || typeof slot.dispatchEvent !== "function") return false;
+    const payload = {
+      fileId: entry.id,
+      trackId: entry.trackId,
+      name: fileLabel(entry),
+    };
+    const drop = new CustomEvent("holysaga:file-drop", {
+      bubbles: true,
+      cancelable: true,
+      detail: payload,
+    });
+    const accepted = !slot.dispatchEvent(drop);
+    if (accepted) {
+      collectFile(entry.id);
+      setSelected(null);
+    } else {
+      slot.classList.add("is-drop-denied");
+      setTimeout(() => slot.classList.remove("is-drop-denied"), 360);
+    }
+    return true;
+  }
+
   function hasFile(id) {
     return files.has(id);
   }
@@ -360,6 +407,9 @@ export function createDesktopFiles(options = {}) {
   return {
     addFile,
     collectFile,
+    tryCollectOnSlot,
+    selectFile: setSelected,
+    getSelected: () => (selectedId ? files.get(selectedId) || null : null),
     hasFile,
     addTool,
     setToolActive,

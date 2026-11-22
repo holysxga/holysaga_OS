@@ -15,6 +15,9 @@ const MIN_WIDTH = 290;
 const MIN_HEIGHT = 170;
 const CASCADE_STEP = 28;
 const CASCADE_LIMIT = 6;
+/* Below this workspace width a window takes the whole layer instead of its
+   preferred size: on a phone there is no spare desktop to arrange windows on. */
+const NARROW_WIDTH = 680;
 
 export function createWindowManager({ layer, services = {} }) {
   const records = new Map();
@@ -72,8 +75,9 @@ export function createWindowManager({ layer, services = {} }) {
     const { width, height } = layerSize();
     const maxW = Math.max(MIN_WIDTH, width - MARGIN * 2);
     const maxH = Math.max(MIN_HEIGHT, height - MARGIN * 2);
-    rec.win.style.width = `${Math.min(rec.pref.w, maxW)}px`;
-    rec.win.style.height = `${Math.min(rec.pref.h, maxH)}px`;
+    const narrow = width < NARROW_WIDTH;
+    rec.win.style.width = `${narrow ? maxW : Math.min(rec.pref.w, maxW)}px`;
+    rec.win.style.height = `${narrow ? maxH : Math.min(rec.pref.h, maxH)}px`;
     clampRecord(rec);
   }
 
@@ -200,7 +204,7 @@ export function createWindowManager({ layer, services = {} }) {
     const prefH = app.size.h;
     const width = Math.min(prefW, Math.max(MIN_WIDTH, layerW - MARGIN * 2));
     const height = Math.min(prefH, Math.max(MIN_HEIGHT, layerH - MARGIN * 2));
-    const narrow = layerW < 640;
+    const narrow = layerW < NARROW_WIDTH;
     let left;
     let top;
 
@@ -211,8 +215,10 @@ export function createWindowManager({ layer, services = {} }) {
     } else {
       const step = (cascade % CASCADE_LIMIT) * CASCADE_STEP;
       cascade += 1;
+      // Narrow desktops use the whole workspace: one window at a time is the
+      // only sane stacking on a phone, and the taskbar still switches them.
       left = narrow ? MARGIN : Math.round((layerW - width) / 2) - 72 + step;
-      top = narrow ? MARGIN + Math.round(step / 2) : Math.round((layerH - height) / 2) - 56 + step;
+      top = narrow ? MARGIN : Math.round((layerH - height) / 2) - 56 + step;
     }
 
     const rec = {

@@ -13,6 +13,9 @@ import { createMazeAudio, AUDIO_DEFAULTS } from "./audio.js";
 const PLAYER_RADIUS = 0.32;
 const WALK_SPEED = 2.05;
 const LOOK_SENSITIVITY = 0.0022;
+/* Touch look is relative to finger travel in CSS px, so it needs its own
+   scale: a 320 px sweep across a phone is a comfortable half turn. */
+const TOUCH_LOOK_SENSITIVITY = 0.0038;
 const MAX_PITCH = 1.18;
 const STEP_DISTANCE = 1.02;
 /*
@@ -74,6 +77,12 @@ export function createMazeEngine(options = {}) {
   let ignoreNextMove = true;
   let lockUnavailable = false;
   const keys = new Set();
+  /* Touch input is a relative vector, held for as long as the stick is away
+     from its neutral position. It is independent of the keyboard set so the
+     two input styles can never cancel each other out. */
+  let touchMode = false;
+  let touchForward = 0;
+  let touchStrafe = 0;
 
   function ensureAudio() {
     if (audio || destroyed) return audio;
@@ -99,6 +108,12 @@ export function createMazeEngine(options = {}) {
    * is refused the game pauses and the overlay asks for a click inside.
    */
   function requestLock() {
+    // Touch play never captures the pointer: there is no cursor to trap, and
+    // asking would only pause the game on browsers that refuse the lock.
+    if (touchMode) {
+      ensureAudio()?.resume();
+      return;
+    }
     if (!canvas || typeof canvas.requestPointerLock !== "function") {
       lockUnavailable = true;
       if (running && !paused && !completed) pause("lock");
@@ -130,6 +145,47 @@ export function createMazeEngine(options = {}) {
   function updateLook(dx, dy) {
     camera.yaw += dx * LOOK_SENSITIVITY;
     camera.pitch = Math.max(-MAX_PITCH, Math.min(MAX_PITCH, camera.pitch - dy * LOOK_SENSITIVITY));
+  }
+
+  /**
+   * Touch look: the same relative camera, scaled for finger travel. The step
+   * is clamped like the mouse path, so a dropped frame or a re-seated finger
+   * cannot whip the view around.
+   */
+  function lookBy(dx, dy) {
+    if (destroyed || paused || completed) return;
+    const stepX = Math.max(-LOOK_MAX_STEP, Math.min(LOOK_MAX_STEP, Number(dx) || 0));
+    const stepY = Math.max(-LOOK_MAX_STEP, Math.min(LOOK_MAX_STEP, Number(dy) || 0));
+    if (!stepX && !stepY) return;
+    camera.yaw += stepX * TOUCH_LOOK_SENSITIVITY;
+    camera.pitch = Math.max(
+      -MAX_PITCH,
+      Math.min(MAX_PITCH, camera.pitch - stepY * TOUCH_LOOK_SENSITIVITY),
+    );
+  }
+
+  /**
+   * Held movement vector, x = strafe (-1 left … 1 right), y = forward
+   * (-1 back … 1 forward). Values are clamped to the unit circle so a
+   * diagonal stick push is never faster than a straight one.
+   */
+  function setMoveVector(x, y) {
+    const strafe = Number(x) || 0;
+    const forward = Number(y) || 0;
+    const length = Math.hypot(strafe, forward);
+    if (length > 1) {
+      touchStrafe = strafe / length;
+      touchForward = forward / length;
+    } else {
+      touchStrafe = strafe;
+      touchForward = forward;
+    }
+  }
+
+  /** Switch between pointer-lock play and on-screen touch controls. */
+  function setTouchMode(next) {
+    touchMode = Boolean(next);
+    if (touchMode) releaseLock();
   }
 
   function onPointerLockChange() {
@@ -245,8 +301,10 @@ export function createMazeEngine(options = {}) {
   }
 
   function update(dt) {
-    let forward = 0;
-    let strafe = 0;
+    // The keyboard adds to the stick, so a visitor using both (a tablet with a
+    // keyboard case) is never fighting one input with the other.
+    let forward = touchForward;
+    let strafe = touchStrafe;
     for (const code of keys) {
       const dir = keyDirection(code);
       if (!dir) continue;
@@ -316,10 +374,12 @@ export function createMazeEngine(options = {}) {
     camera.y = EYE_HEIGHT;
     camera.yaw = START.yaw;
     camera.pitch = 0;
+    touchForward = 0;
+    touchStrafe = 0;
     ensureAudio();
     audio.begin({ restart: true });
     addListeners();
-    requestLock();
+    if (!touchMode) requestLock();
     lastFrame = 0;
     renderer.resize();
     raf = requestAnimationFrame(frame);
@@ -329,6 +389,9 @@ export function createMazeEngine(options = {}) {
     if (!running || paused || completed || destroyed) return;
     paused = true;
     keys.clear();
+    // A pause releases every held input, including the touch stick.
+    touchForward = 0;
+    touchStrafe = 0;
     ignoreNextMove = true;
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
@@ -342,7 +405,7 @@ export function createMazeEngine(options = {}) {
     paused = false;
     ignoreNextMove = true;
     audio?.resume();
-    requestLock();
+    if (!touchMode) requestLock();
     lastFrame = 0;
     onResume();
     if (!raf) raf = requestAnimationFrame(frame);
@@ -362,6 +425,8 @@ export function createMazeEngine(options = {}) {
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
     keys.clear();
+    touchForward = 0;
+    touchStrafe = 0;
     releaseLock();
     audio?.doorTone();
     audio?.finish();
@@ -373,6 +438,8 @@ export function createMazeEngine(options = {}) {
     destroyed = true;
     running = false;
     paused = false;
+    touchForward = 0;
+    touchStrafe = 0;
     if (raf) cancelAnimationFrame(raf);
     raf = 0;
     removeListeners();
@@ -398,6 +465,10 @@ export function createMazeEngine(options = {}) {
     resume,
     destroy,
     setVolumes,
+    setMoveVector,
+    lookBy,
+    setTouchMode,
+    isTouchMode: () => touchMode,
     getState: () => ({
       running,
       paused,

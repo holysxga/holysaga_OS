@@ -1,0 +1,646 @@
+/* ==========================================================================
+   HOLYSAGA_oS — phones, tablets and touch input
+   ==========================================================================
+   Loaded last. Everything here is additive: the desktop rules above keep
+   their composition, and the touch sizes are scoped to `(pointer: coarse)` so
+   a mouse user never sees a bigger window button or a wider taskbar.
+
+   Two separate concerns live here:
+   1. layout  — narrow and short viewports (safe areas, window fitting, the
+                scrolling surfaces that already exist but need touch physics);
+   2. input   — hit areas and gesture ownership for fingers.
+   ========================================================================== */
+
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  /* The bar keeps its 30px face and grows by the home-indicator inset. */
+  --taskbar-h: calc(30px + var(--safe-bottom));
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  overscroll-behavior: none;
+}
+
+/* Touch scrolling inside app surfaces, without chaining to the page behind. */
+.window__body,
+.dreams__list,
+.notes__page,
+.images__grid,
+.outsider__launcher,
+.startmenu,
+.signals__body {
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+/* Chrome is not text: a long press must not start a selection or a callout. */
+.shortcuts,
+.desktop-files,
+.taskbar,
+.startmenu,
+.window__titlebar,
+.mascot__bubble,
+.music__transport,
+.music__seek-row,
+.music__volume-row {
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+@media (pointer: coarse) {
+  body {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Gesture ownership
+   --------------------------------------------------------------------------
+   `manipulation` removes the double-tap zoom from real controls while leaving
+   pinch-zoom available on the page itself. Anything that traces a continuous
+   gesture (window drag, seek, stick, look, cleaning) owns the touch outright.
+   -------------------------------------------------------------------------- */
+
+.shortcut,
+.deskfile,
+.task,
+.tasktool,
+.window__btn,
+.music__btn,
+.music__slot,
+.music__mute,
+.outsider__overlay-button,
+.notes__menu-btn,
+.notes__menu-item,
+.notes__about-close,
+.startmenu button {
+  touch-action: manipulation;
+}
+
+.window__titlebar,
+.music__seek,
+.music__wave,
+.music__volume-range,
+.outsider__slider,
+.outsider__canvas,
+.outsider__game,
+.outsider__touch,
+.brush {
+  touch-action: none;
+}
+
+/* The maze never scrolls, bounces or pulls to refresh under a thumb. */
+.outsider__game {
+  overscroll-behavior: contain;
+}
+
+/* Cleaning is a stroke: the desktop does not scroll or bounce under it. */
+.desktop.is-brush-active {
+  touch-action: none;
+  overscroll-behavior: contain;
+}
+
+/* A file chosen for the collection stays visibly chosen until it is used. */
+.deskfile.is-selected .shortcut__thumb {
+  box-shadow:
+    inset 0 0 0 1px rgba(246, 252, 248, 0.5),
+    inset 0 0 9px 3px rgba(0, 0, 0, 0.66),
+    0 0 0 3px rgba(123, 210, 203, 0.75),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.deskfile.is-selected .deskfile__label {
+  background: rgba(8, 34, 29, 0.85);
+  outline: 1px dotted rgba(196, 246, 238, 0.9);
+  outline-offset: 1px;
+}
+
+/* --------------------------------------------------------------------------
+   Fingers need bigger targets than a 17 × 15 title-bar button
+   -------------------------------------------------------------------------- */
+
+@media (pointer: coarse) {
+  :root {
+    --taskbar-h: calc(46px + var(--safe-bottom));
+  }
+
+  .taskbar {
+    height: var(--taskbar-h);
+    padding-top: 3px;
+    padding-right: max(2px, var(--safe-right));
+    padding-bottom: calc(3px + var(--safe-bottom));
+    padding-left: max(1px, var(--safe-left));
+  }
+
+  .taskbar__start {
+    height: 36px;
+    padding: 0 12px 0 8px;
+  }
+
+  .taskbar__start-label {
+    font-size: 12px;
+  }
+
+  .taskbar__tasks,
+  .taskbar__tools {
+    height: 36px;
+  }
+
+  .task {
+    height: 36px;
+  }
+
+  .tasktool {
+    width: 36px;
+    height: 36px;
+  }
+
+  .tasktool__icon,
+  .tasktool__icon svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  .window__titlebar {
+    height: 30px;
+    padding: 0 4px;
+    font-size: 12px;
+  }
+
+  .window__btn {
+    width: 30px;
+    height: 26px;
+  }
+
+  .window__btn--min::after {
+    right: 6px;
+    bottom: 6px;
+    left: 6px;
+    height: 3px;
+  }
+
+  .window__btn--close::before,
+  .window__btn--close::after {
+    width: 13px;
+    height: 2px;
+  }
+
+  .window__controls {
+    gap: 4px;
+    margin-left: 4px;
+  }
+
+  /* Icons: a 44px medallion is the smallest comfortable tap. */
+  .shortcut__thumb {
+    width: 54px;
+    height: 54px;
+  }
+
+  .shortcut__icon {
+    width: 28px;
+    height: 28px;
+  }
+
+  .shortcut__label {
+    font-size: 10px;
+    max-width: 84px;
+  }
+
+  .shortcut-item {
+    width: 88px;
+  }
+
+  .deskfile-item {
+    width: 88px;
+  }
+
+  /* MUSIC PLAYER */
+  .music__btn {
+    width: 42px;
+    height: 38px;
+  }
+
+  .music__glyph {
+    font-size: 11px;
+  }
+
+  .music__slot {
+    min-height: 52px;
+  }
+
+  .music__seek {
+    height: 22px;
+  }
+
+  .music__wave {
+    min-height: 34px;
+  }
+
+  .music__volume-range {
+    width: 44%;
+    min-width: 96px;
+    height: 30px;
+  }
+
+  .music__visualizer {
+    height: 38px;
+  }
+
+  .music__mute {
+    width: 40px;
+    height: 38px;
+  }
+
+  /* IMAGE DUMP / VIEWER */
+  .images__tile {
+    min-height: 44px;
+  }
+
+  .viewer__img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+
+  /* NOTES.TXT */
+  .notes__menu-btn {
+    min-height: 36px;
+    padding: 4px 12px;
+  }
+
+  .notes__menu-item {
+    min-height: 40px;
+  }
+
+  .notes__about-close {
+    min-height: 38px;
+    padding: 0 14px;
+  }
+
+  /* DREAM LOG + NOTES cleaning surfaces: the shards stay the target, the
+     finger only needs a fair reach around them. */
+
+  /* M.I.L.O. */
+  .mascot__close {
+    min-width: 34px;
+    min-height: 30px;
+  }
+
+  .mascot__action {
+    min-height: 36px;
+    padding: 4px 12px;
+  }
+
+  .mascot__bubble-body--dialog {
+    max-height: min(38vh, 260px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  /* Start menu */
+  .startmenu {
+    width: min(292px, calc(100vw - 8px));
+  }
+
+  .startmenu__app,
+  .startmenu__lang {
+    min-height: 42px;
+  }
+
+  /* LIBERATION's replay entry lives in the taskbar. */
+  .taskbar__liberation {
+    min-width: 38px;
+    height: 38px;
+  }
+
+  .outsider__start,
+  .outsider__overlay-button {
+    min-height: 44px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Narrow viewports
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 680px) {
+  .desktop {
+    /* Top safe area only matters where a notch cuts into the workspace. */
+    padding-top: var(--safe-top);
+  }
+
+  .shortcuts {
+    padding: max(8px, var(--safe-top)) 2px 5px max(4px, var(--safe-left));
+  }
+
+  .shortcuts__list {
+    gap: 6px;
+  }
+
+  .deskfile-item {
+    /* The file column starts right beside the program column at every width;
+       the inline offsets already place it, this only keeps it clear of the
+       notch on landscape phones. */
+    margin-left: var(--safe-left);
+  }
+
+  .startmenu {
+    left: max(2px, var(--safe-left));
+    bottom: calc(var(--taskbar-h) + 2px);
+  }
+
+  /* Applications fill the workspace, so their inner scrolling is what moves. */
+  .window__body > .app {
+    min-height: 0;
+  }
+
+  .music__transport {
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+
+  .music__seek-row {
+    flex-wrap: wrap;
+    row-gap: 4px;
+  }
+
+  .music__time {
+    margin-left: auto;
+  }
+
+  .music__volume-row {
+    flex-wrap: wrap;
+  }
+
+  .notes__line,
+  .dreams__line,
+  .lib-copy__text {
+    overflow-wrap: anywhere;
+  }
+
+  .app__note {
+    font-size: 9.5px;
+  }
+}
+
+/* Portrait phones: the taskbar can afford full-width window buttons. */
+@media (max-width: 420px) {
+  .task__label {
+    font-size: 11px;
+  }
+
+  .clock {
+    font-size: 11px;
+  }
+
+  .mascot-root {
+    right: max(8px, var(--safe-right));
+    bottom: max(6px, var(--safe-bottom));
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Short viewports (landscape phones)
+   -------------------------------------------------------------------------- */
+
+@media (max-height: 560px) {
+  .window__titlebar {
+    height: 26px;
+  }
+
+  .shortcuts__list {
+    gap: 4px;
+  }
+
+  /* Two columns keep every shortcut above the taskbar instead of letting the
+     column run under it. */
+  .shortcuts__list {
+    flex-flow: row wrap;
+    align-content: flex-start;
+    justify-content: flex-start;
+  }
+
+  .shortcut-item {
+    width: 80px;
+  }
+
+  /* The collectible column moves right, past both shortcut columns. */
+  .desktop-files .deskfile-item:nth-child(1),
+  .desktop-files .deskfile-item:nth-child(4) {
+    left: 168px !important;
+  }
+
+  .desktop-files .deskfile-item:nth-child(2),
+  .desktop-files .deskfile-item:nth-child(5) {
+    left: 256px !important;
+  }
+
+  .desktop-files .deskfile-item:nth-child(3),
+  .desktop-files .deskfile-item:nth-child(6) {
+    left: 344px !important;
+  }
+
+  .shortcut__thumb {
+    width: 38px;
+    height: 38px;
+  }
+
+  .shortcut__icon {
+    width: 20px;
+    height: 20px;
+  }
+
+  .shortcut__label {
+    font-size: 8px;
+    max-width: 76px;
+  }
+
+  .music__slots {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  }
+}
+
+/* --------------------------------------------------------------------------
+   OUTSIDER.EXE — touch surface
+   -------------------------------------------------------------------------- */
+
+.outsider__touch {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+}
+
+/* The right side of the view is the look pad. It stops before the stick so a
+   thumb resting low-left is never read as a camera drag. */
+.outsider__look {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 38%;
+  pointer-events: auto;
+  touch-action: none;
+}
+
+.outsider__stick {
+  position: absolute;
+  left: max(14px, calc(var(--safe-left) + 10px));
+  bottom: max(14px, calc(var(--safe-bottom) + 12px));
+  width: 118px;
+  height: 118px;
+  border-radius: 50%;
+  pointer-events: auto;
+  touch-action: none;
+  background:
+    radial-gradient(circle at 38% 30%, rgba(210, 245, 236, 0.16), rgba(3, 16, 15, 0.5) 70%);
+  border: 1px solid rgba(123, 210, 203, 0.4);
+  box-shadow:
+    inset 0 0 18px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(2, 10, 9, 0.7);
+}
+
+.outsider__stick-ring {
+  position: absolute;
+  inset: 14px;
+  border-radius: 50%;
+  border: 1px dashed rgba(123, 210, 203, 0.25);
+}
+
+.outsider__stick-knob {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 46px;
+  height: 46px;
+  margin: -23px 0 0 -23px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 36% 28%, rgba(226, 248, 242, 0.55), rgba(58, 122, 114, 0.5) 60%, rgba(9, 34, 31, 0.7));
+  border: 1px solid rgba(196, 246, 238, 0.5);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  transition: transform 60ms linear;
+  will-change: transform;
+}
+
+.outsider__touch-pause {
+  position: absolute;
+  top: max(8px, calc(var(--safe-top) + 6px));
+  right: max(8px, calc(var(--safe-right) + 6px));
+  z-index: 6;
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  color: #d7efe8;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  pointer-events: auto;
+  background: rgba(6, 22, 20, 0.72);
+  border: 1px solid rgba(123, 210, 203, 0.55);
+  touch-action: manipulation;
+}
+
+.outsider__touch-hint {
+  position: absolute;
+  bottom: max(18px, calc(var(--safe-bottom) + 16px));
+  left: 50%;
+  width: min(210px, 46vw);
+  color: rgba(183, 216, 201, 0.72);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  line-height: 1.35;
+  text-align: center;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.outsider__rotate {
+  position: absolute;
+  top: max(10px, calc(var(--safe-top) + 8px));
+  left: 50%;
+  display: none;
+  max-width: 52%;
+  padding: 3px 8px;
+  color: #cfe7de;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  text-align: center;
+  background: rgba(6, 22, 20, 0.7);
+  border: 1px solid rgba(123, 210, 203, 0.35);
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+@media (orientation: portrait) and (pointer: coarse) {
+  .outsider__rotate {
+    display: block;
+  }
+}
+
+@media (max-height: 520px) and (pointer: coarse) {
+  .outsider__stick {
+    width: 100px;
+    height: 100px;
+  }
+
+  .outsider__stick-knob {
+    width: 40px;
+    height: 40px;
+    margin: -20px 0 0 -20px;
+  }
+
+  .outsider__touch-hint {
+    display: none;
+  }
+
+  .outsider__touch-pause {
+    width: 38px;
+    height: 38px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   LIBERATION — keep the finale's copy whole on a narrow screen
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 560px) {
+  .liberation-window--finale {
+    --lib-h: clamp(140px, 24vh, 200px);
+  }
+
+  .liberation-window--large {
+    --lib-h: clamp(130px, 20vh, 190px);
+  }
+
+  .lib-copy__text {
+    line-height: 1.4;
+    overflow-wrap: anywhere;
+  }
+
+  .liberation-title__word {
+    font-size: clamp(20px, 9vw, 34px);
+  }
+}
+
+/* A short landscape viewport cannot stack the boot card and the title. */
+@media (max-height: 420px) {
+  .liberation-boot {
+    gap: 6px;
+    padding: 10px;
+  }
+
+  .liberation-boot__title {
+    font-size: clamp(14px, 3.4vw, 22px);
+  }
+}

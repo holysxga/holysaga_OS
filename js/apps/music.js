@@ -18,6 +18,7 @@ import { tracks } from "../data/music.js";
 import { progression } from "../core/progression.js";
 import { player } from "../core/player.js";
 import { loadWaveform } from "../core/waveform.js";
+import { isCoarsePointer } from "../core/input.js";
 import { visualizerApp } from "./visualizer.js";
 
 const STATE_KEYS = {
@@ -107,7 +108,8 @@ export const musicApp = {
     }
 
     function promptDrop() {
-      view.notice = "music.slotEmptyHint";
+      // Touch has no drag gesture: explain the tap sequence instead.
+      view.notice = isCoarsePointer() ? "music.tapCollectHint" : "music.slotEmptyHint";
       paint();
     }
 
@@ -314,8 +316,15 @@ export const musicApp = {
             dataset: { collectionSlot: track.id, trackId: track.id },
             on: {
               click: () => {
-                if (progression.hasTrack(track.id)) choose(track);
-                else promptDrop();
+                if (progression.hasTrack(track.id)) {
+                  choose(track);
+                  return;
+                }
+                // Touch collection: the file chosen on the desktop is offered
+                // to this slot through the existing drop validation. A tap on
+                // a slot is the explicit choice; a tap on the file is not.
+                if (ctx.files?.tryCollectOnSlot?.(slot)) return;
+                promptDrop();
               },
             },
           },
@@ -478,7 +487,10 @@ export const musicApp = {
           el("span", { class: "app__label", text: t("music.library") }),
           count,
         ]),
-        el("p", { class: "music__grid-hint", text: t("music.slotDropHint") }),
+        el("p", {
+          class: "music__grid-hint",
+          text: t(isCoarsePointer() ? "music.tapCollectHint" : "music.slotDropHint"),
+        }),
         grid,
         now,
         el("div", { class: "music__transport" }, [

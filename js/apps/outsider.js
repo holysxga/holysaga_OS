@@ -17,7 +17,9 @@ import { t, onLocaleChange } from "../i18n/index.js";
 import { progression } from "../core/progression.js";
 import { readPref, writePref } from "../core/storage.js";
 import { createMazeEngine } from "./outsider/engine.js";
+import { createTouchControls } from "./outsider/touch.js";
 import { AUDIO_DEFAULTS } from "./outsider/audio.js";
+import { isCoarsePointer } from "../core/input.js";
 
 const TRACK_ID = "outsider";
 const FILE_ID = "outsider-wav";
@@ -51,6 +53,7 @@ export const outsiderApp = {
       lastPause: "manual",
     };
     let engine = null;
+    let controls = null;
     let bgm = numericPref(BGM_PREF, AUDIO_DEFAULTS.bgm);
     let sfx = numericPref(SFX_PREF, AUDIO_DEFAULTS.sfx);
     let destroyed = false;
@@ -201,12 +204,23 @@ export const outsiderApp = {
             ]),
             el("div", { class: "outsider__panel" }, [
               el("p", { class: "outsider__label", text: t("outsider.controlsTitle") }),
-              el("ul", { class: "outsider__controls" }, [
-                el("li", { text: t("outsider.controlMove") }),
-                el("li", { text: t("outsider.controlLook") }),
-                el("li", { text: t("outsider.controlPause") }),
-                el("li", { text: t("outsider.controlExit") }),
-              ]),
+              el(
+                "ul",
+                { class: "outsider__controls" },
+                touchMode
+                  ? [
+                      el("li", { text: t("outsider.touchMove") }),
+                      el("li", { text: t("outsider.touchLook") }),
+                      el("li", { text: t("outsider.pauseButton") }),
+                      el("li", { text: t("outsider.controlExit") }),
+                    ]
+                  : [
+                      el("li", { text: t("outsider.controlMove") }),
+                      el("li", { text: t("outsider.controlLook") }),
+                      el("li", { text: t("outsider.controlPause") }),
+                      el("li", { text: t("outsider.controlExit") }),
+                    ],
+              ),
             ]),
           ]),
           state.completed
@@ -287,6 +301,28 @@ export const outsiderApp = {
     const gameHud = el("div", { class: "outsider__hud" }, [hudKicker, hudHint, audioBadge, crosshair]);
     game.append(canvas, gameHud, pauseOverlay, completeOverlay);
 
+    /* ------------------------------------------------------- touch surface */
+
+    // Touch play is chosen by capability, never by viewport width: a desktop
+    // window can be narrow and still have a mouse. A browser that cannot lock
+    // the pointer needs the on-screen controls too, otherwise the maze would
+    // pause on its first click and stay paused.
+    const touchMode =
+      isCoarsePointer() || typeof canvas.requestPointerLock !== "function";
+
+    if (touchMode) {
+      controls = createTouchControls({
+        onMove: (x, y) => engine?.setMoveVector(x, y),
+        onLook: (dx, dy) => engine?.lookBy(dx, dy),
+        onPause: () => engine?.pause("touch"),
+      });
+      game.append(controls.root);
+    }
+
+    const hintText = () =>
+      t(touchMode ? "outsider.touchHint" : "outsider.hint");
+    hudHint.textContent = hintText();
+
     /* -------------------------------------------------------------- status */
 
     function setStatus(key) {
@@ -326,6 +362,8 @@ export const outsiderApp = {
 
     function showPause(reason) {
       if (state.screen === "complete") return;
+      // A pause releases every held direction, stick included.
+      controls?.release();
       state.screen = "paused";
       state.lastPause = reason;
       pauseOverlay.hidden = false;
@@ -374,6 +412,7 @@ export const outsiderApp = {
       if (state.screen === "complete") return;
       state.screen = "complete";
       state.completed = true;
+      controls?.release();
       hidePause();
       pauseOverlay.hidden = true;
       completeOverlay.hidden = false;
@@ -415,6 +454,7 @@ export const outsiderApp = {
     function makeEngine() {
       engine = createMazeEngine({
         canvas,
+        touchMode,
         onComplete: finishSequence,
         onPause: ({ reason }) => showPause(reason),
         onResume: () => {
@@ -424,6 +464,7 @@ export const outsiderApp = {
         onError: (error) => showRenderError(error?.message),
       });
       engine.setVolumes({ bgm, sfx });
+      engine.setTouchMode(touchMode);
       const debug = new URLSearchParams(window.location.search).has("outsiderDebug");
       if (debug) window.__OUTSIDER__ = { engine };
     }
@@ -468,7 +509,8 @@ export const outsiderApp = {
     const stopLocale = onLocaleChange(() => {
       renderLauncher();
       hudKicker.textContent = "OUTSIDER.EXE";
-      hudHint.textContent = t("outsider.hint");
+      hudHint.textContent = hintText();
+      controls?.refreshLabels();
       canvas.setAttribute("aria-label", t("outsider.canvasLabel"));
       mixer.setAttribute("aria-label", t("outsider.audio"));
       bgmLabel.textContent = t("outsider.bgm");
@@ -493,6 +535,8 @@ export const outsiderApp = {
       destroyed = true;
       clearTimers();
       stopLocale();
+      controls?.destroy();
+      controls = null;
       engine?.destroy();
       engine = null;
       if (window.__OUTSIDER__) delete window.__OUTSIDER__;

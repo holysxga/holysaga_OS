@@ -20,6 +20,7 @@
  * completely protected, so the established desktop behaviour is unchanged.
  */
 import { el } from "../core/dom.js";
+import { isCoarsePointer } from "../core/input.js";
 
 export const BRUSH_CONFIG = Object.freeze({
   /* Minimum distance, in px, between two cleaning samples while dragging. */
@@ -175,6 +176,8 @@ export function createCleaningBrush(options = {}) {
     }
     painting = true;
     lastPoint = { x: event.clientX, y: event.clientY };
+    // A finger has no hover: the ring appears exactly where the stroke began.
+    place(event.clientX, event.clientY);
     clean(event.clientX, event.clientY);
     // The stroke owns the press: no text selection, focus ring or native drag.
     if (event.cancelable) event.preventDefault();
@@ -268,7 +271,9 @@ export function createCleaningBrush(options = {}) {
     return active;
   }
 
-  brush.style.setProperty("--brush-ring", `${config.ringPx}px`);
+  // A fingertip is wider than a cursor tip, so the ring grows to match it.
+  const ringPx = isCoarsePointer() ? Math.round(config.ringPx * 1.5) : config.ringPx;
+  brush.style.setProperty("--brush-ring", `${ringPx}px`);
   if (root) root.append(brush);
 
   return {
