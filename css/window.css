@@ -1,0 +1,196 @@
+/* ==========================================================================
+   Application windows
+   ========================================================================== */
+
+.window-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  /* The layer is only a positioning context: empty space must stay clickable
+     so the desktop shortcuts underneath can receive their own clicks. */
+  pointer-events: none;
+}
+
+.window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  padding: 3px;
+  min-width: 290px;
+  min-height: 170px;
+  /* Sized against the window layer (the desktop, already clear of the
+     taskbar), never against the raw viewport: a maximized window can reach
+     the workspace edge but can never slide under the taskbar or off-screen. */
+  max-width: 100%;
+  max-height: 100%;
+  background: var(--frame);
+  border: 1px solid;
+  border-color: var(--frame-hi) var(--black) var(--black) var(--frame-hi);
+  box-shadow:
+    inset 1px 1px 0 var(--white),
+    inset -1px -1px 0 var(--edge-dark),
+    var(--shadow-window);
+  pointer-events: auto;
+}
+
+.window.is-minimized {
+  display: none;
+}
+
+.window__titlebar {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  height: 19px;
+  padding: 0 3px;
+  background: linear-gradient(90deg, var(--titlebar-a) 0%, var(--titlebar-b) 100%);
+  color: var(--white);
+  font-weight: 700;
+  font-size: 12px;
+  line-height: 1;
+  user-select: none;
+  touch-action: none;
+  font-family: var(--font-label);
+  letter-spacing: 0.04em;
+}
+
+.window.is-inactive .window__titlebar {
+  background: linear-gradient(90deg, var(--titlebar-off-a) 0%, var(--titlebar-off-b) 100%);
+  color: #e2e2dd;
+}
+
+.window__icon {
+  flex: 0 0 auto;
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.window__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  letter-spacing: 0.2px;
+}
+
+.window__controls {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 2px;
+  margin-left: 6px;
+}
+
+.window__btn {
+  position: relative;
+  width: 17px;
+  height: 15px;
+  background: var(--frame);
+  border: 1px solid;
+  border-color: var(--frame-hi) var(--black) var(--black) var(--frame-hi);
+  box-shadow:
+    inset 1px 1px 0 var(--white),
+    inset -1px -1px 0 var(--edge-dark);
+}
+
+.window__btn:active {
+  border-color: var(--black) var(--frame-hi) var(--frame-hi) var(--black);
+  box-shadow: inset 1px 1px 0 var(--edge-dark);
+}
+
+.window__btn:focus-visible {
+  outline: 1px dotted var(--black);
+  outline-offset: -4px;
+}
+
+.window__btn--min::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  left: 4px;
+  height: 2px;
+  background: var(--black);
+}
+
+.window__btn--close::before,
+.window__btn--close::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 10px;
+  height: 2px;
+  background: var(--black);
+}
+
+.window__btn--close::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.window__btn--close::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.window__body {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--frame);
+}
+
+.window__body > * {
+  min-height: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Shared window furniture used by the applications
+   -------------------------------------------------------------------------- */
+
+.app {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--frame);
+}
+
+.app__surface {
+  background: var(--white);
+  color: var(--text);
+}
+
+.statusbar {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 2px;
+  padding-top: 3px;
+}
+
+.statusbar__cell {
+  padding: 2px 6px;
+  overflow: hidden;
+  background: var(--frame);
+  font-size: 12px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.statusbar__cell--grow {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.statusbar__cell--tight {
+  flex: 0 0 auto;
+}
+
+@media (max-width: 520px) {
+  .window {
+    min-width: 0;
+  }
+}

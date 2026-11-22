@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>corruption preview — dev only</title>
+    <link rel="stylesheet" href="../css/base.css" />
+    <link rel="stylesheet" href="../css/corruption.css" />
+    <style>
+      body {
+        overflow: auto;
+        padding: 16px;
+        background: #c0c0c0;
+      }
+      h1 {
+        margin-bottom: 10px;
+        font-family: var(--font-label);
+        font-size: 14px;
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        gap: 12px;
+      }
+      .panel {
+        padding: 6px;
+        background: var(--frame);
+        border: 1px solid;
+        border-color: var(--white) var(--black) var(--black) var(--white);
+      }
+      .panel h2 {
+        margin: 4px 0 6px;
+        font-family: var(--font-body);
+        font-size: 12px;
+      }
+      .photo {
+        position: relative;
+        height: 132px;
+        background: linear-gradient(155deg, #31594f, #7f9d90);
+      }
+      .actions {
+        display: flex;
+        gap: 6px;
+        margin-top: 14px;
+      }
+      button {
+        padding: 3px 10px;
+        background: var(--frame);
+        border: 1px solid;
+        border-color: var(--white) var(--black) var(--black) var(--white);
+        box-shadow: inset 1px 1px 0 var(--white), inset -1px -1px 0 var(--edge-dark);
+        font-family: var(--font-body);
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>corruption system — dev preview</h1>
+    <div class="grid">
+      <div class="panel"><h2>subtle</h2><div id="subtle"></div></div>
+      <div class="panel"><h2>medium</h2><div id="medium"></div></div>
+      <div class="panel"><h2>heavy</h2><div id="heavy"></div></div>
+      <div class="panel">
+        <h2>over an image</h2>
+        <div class="photo" id="photo"></div>
+      </div>
+    </div>
+    <div class="actions">
+      <button id="recover" type="button">Recover</button>
+      <button id="reset" type="button">Rebuild</button>
+    </div>
+    <script type="module">
+      import {
+        applyCorruption,
+        createCorruptionBlock,
+      } from "../js/ui/corruption.js";
+
+      const blocks = [];
+      const build = () => {
+        for (const controller of blocks.splice(0)) controller.destroy();
+        for (const id of ["subtle", "medium", "heavy"]) {
+          const host = document.getElementById(id);
+          host.replaceChildren();
+          const block = createCorruptionBlock({
+            intensity: id,
+            caption: "fragment unreadable",
+            height: 132,
+            seed: id,
+          });
+          blocks.push(block.controller);
+          host.append(block.el);
+        }
+        const photo = document.getElementById("photo");
+        photo.replaceChildren();
+        blocks.push(
+          applyCorruption(photo, { intensity: "heavy", seed: "photo" }),
+        );
+      };
+
+      document.getElementById("recover").addEventListener("click", () => {
+        for (const controller of blocks) controller.recover({ duration: 1200 });
+      });
+      document.getElementById("reset").addEventListener("click", build);
+      build();
+    </script>
+  </body>
+</html>

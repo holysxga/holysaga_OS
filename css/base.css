@@ -1,0 +1,189 @@
+/* ==========================================================================
+   HOLYSAGA_oS — design tokens, reset and shared 3D edges
+   ========================================================================== */
+
+:root {
+  /* Desktop and chrome */
+  --desktop-bg: #2f6f65;
+  --desktop-deep: #1e4f47;
+  --frame: #c0c0c0;
+  --frame-hi: #dfdfdf;
+  --white: #ffffff;
+  --edge-dark: #808080;
+  --black: #000000;
+  --navy: #000080;
+  --navy-light: #1084d0;
+  --titlebar-a: #0c1650;
+  --titlebar-b: #3c6ba6;
+  --titlebar-off-a: #6f746f;
+  --titlebar-off-b: #a9ada7;
+  --text: #000000;
+  --text-muted: #5a5a5a;
+  --taskbar-h: 30px;
+
+  /* Type */
+  --font-ui: "Exo 2", "MS Sans Serif", "Tahoma", "Geneva", "Verdana", "DejaVu Sans", sans-serif;
+  --font-mono: "Lucida Console", "Consolas", "Courier New", "DejaVu Sans Mono", monospace;
+  /* Compact, fixed-width label face: use Michroma for headings/labels */
+  --font-label: "Michroma", "Lucida Console", "Consolas", "Tahoma", "DejaVu Sans Mono", monospace;
+  --font-display: "Michroma", "Exo 2", "Tahoma", sans-serif;
+  --font-body: "Exo 2", "MS Sans Serif", "Tahoma", "Geneva", "Verdana", "DejaVu Sans", sans-serif;
+
+  --shadow-window: 2px 2px 0 rgba(0, 0, 0, 0.34);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  overflow: hidden;
+  background: var(--desktop-bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  line-height: 1.35;
+  scrollbar-color: var(--frame) var(--frame-hi);
+}
+
+button,
+select,
+input,
+textarea {
+  font: inherit;
+  color: inherit;
+  border-radius: 0;
+}
+
+button {
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: default;
+}
+
+h1,
+h2,
+h3,
+p,
+ul,
+ol,
+figure {
+  margin: 0;
+}
+
+ul,
+ol {
+  padding: 0;
+  list-style: none;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+:focus-visible {
+  outline: 1px dotted var(--black);
+  outline-offset: 1px;
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.noscript {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: var(--frame);
+  color: var(--text);
+  text-align: center;
+  font-size: 13px;
+}
+
+/* --------------------------------------------------------------------------
+   Classic 3D edges
+   -------------------------------------------------------------------------- */
+.raised {
+  border: 1px solid;
+  border-color: var(--frame-hi) var(--black) var(--black) var(--frame-hi);
+  box-shadow:
+    inset 1px 1px 0 var(--white),
+    inset -1px -1px 0 var(--edge-dark);
+}
+
+.raised:active,
+.raised[aria-expanded="true"] {
+  border-color: var(--black) var(--frame-hi) var(--frame-hi) var(--black);
+  box-shadow:
+    inset 1px 1px 0 var(--edge-dark),
+    inset -1px -1px 0 var(--frame-hi);
+}
+
+.sunken {
+  border: 1px solid;
+  border-color: var(--edge-dark) var(--white) var(--white) var(--edge-dark);
+  box-shadow:
+    inset 1px 1px 0 var(--black),
+    inset -1px -1px 0 var(--frame-hi);
+}
+
+/* Buttons inside dark or coloured areas keep their own edges. */
+.raised:focus-visible,
+.sunken:focus-visible {
+  outline: 1px dotted var(--black);
+  outline-offset: -4px;
+}
+
+/* --------------------------------------------------------------------------
+   Scrollbars, old-computer style
+   -------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 16px;
+  height: 16px;
+}
+
+::-webkit-scrollbar-track {
+  background: repeating-conic-gradient(#c0c0c0 0% 25%, #ffffff 0% 50%) 0 0 / 2px 2px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--frame);
+  border: 1px solid;
+  border-color: var(--white) var(--black) var(--black) var(--white);
+  box-shadow:
+    inset 1px 1px 0 var(--frame-hi),
+    inset -1px -1px 0 var(--edge-dark);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #cdcdcd;
+}
+
+::-webkit-scrollbar-corner {
+  background: var(--frame);
+}

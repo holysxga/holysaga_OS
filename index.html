@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="pt">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>holysaga_oS — espaço pessoal</title>
+    <meta
+      name="description"
+      content="holysaga_oS — um espaço pessoal em forma de computador antigo. Músicas, imagens, sonhos e notas."
+    />
+    <meta name="theme-color" content="#2e6b61" />
+    <link rel="icon" type="image/svg+xml" href="assets/icons/monitor.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Exo+2:wght@400;500;600;700&family=Michroma&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="css/base.css" />
+    <link rel="stylesheet" href="css/window.css" />
+    <link rel="stylesheet" href="css/corruption.css" />
+    <link rel="stylesheet" href="css/desktop.css" />
+    <link rel="stylesheet" href="css/apps.css" />
+    <link rel="stylesheet" href="css/liberation.css" />
+  </head>
+  <body>
+    <main class="desktop" id="desktop">
+      <h1 class="visually-hidden">holysaga_oS</h1>
+      <div class="shortcuts" id="shortcuts"></div>
+      <div class="corruption-layer" id="corruption-layer"></div>
+      <div class="window-layer" id="window-layer"></div>
+      <div class="twister-layer" id="twister-layer"></div>
+      <div class="mascot-root" id="mascot-root"></div>
+    </main>
+
+    <div id="taskbar-root"></div>
+    <div id="start-menu-root"></div>
+
+    <noscript>
+      <p class="noscript">
+        holysaga_oS precisa de JavaScript para desenhar a área de trabalho. /
+        holysaga_oS needs JavaScript to draw the desktop.
+      </p>
+    </noscript>
+
+    <script type="module" src="js/main.js"></script>
+  </body>
+</html>

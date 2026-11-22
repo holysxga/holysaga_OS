@@ -1,0 +1,289 @@
+/* ==========================================================================
+   HOLYSAGA_oS — corrupted memory surfaces
+   One treatment for damaged content: a very dark teal field, scattered teal
+   glyph fragments (canvas), CRT scanlines, interference, grain and a rare
+   flicker. Applied by js/ui/corruption.js; no app should redraw its own
+   corruption style.
+   ========================================================================== */
+
+.corrupt-host {
+  position: relative;
+}
+
+.corrupt {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    radial-gradient(115% 130% at 50% 38%, #081816 0%, #051312 56%, #030c0b 100%);
+  border: 1px solid #0f2220;
+}
+
+.corrupt--subtle {
+  background:
+    radial-gradient(115% 130% at 50% 38%, rgba(9, 24, 22, 0.88) 0%, rgba(5, 15, 14, 0.93) 100%);
+}
+
+.corrupt--medium {
+  background:
+    radial-gradient(115% 130% at 50% 38%, #071715 0%, #051211 62%, #030b0a 100%);
+}
+
+.corrupt--heavy {
+  background: #040e0d;
+}
+
+/* Both glyph canvases sit on top of the field and fill it exactly. */
+.corrupt__field {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.corrupt--subtle .corrupt__field {
+  --corrupt-rest: 0.92;
+  opacity: var(--corrupt-rest);
+}
+
+/* --------------------------------------------------------------------------
+   CRT layers
+   -------------------------------------------------------------------------- */
+
+/* Fine horizontal scanlines — light enough to leave glyphs readable. */
+.corrupt__scan {
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(0, 0, 0, 0.3) 0 1px,
+    transparent 1px 3px
+  );
+  opacity: 0.62;
+}
+
+/* Faint horizontal interference lines, drifting a few pixels. */
+.corrupt__interference {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -9px;
+  bottom: -9px;
+  background: repeating-linear-gradient(
+    0deg,
+    rgba(126, 218, 204, 0.055) 0 1px,
+    transparent 1px 9px
+  );
+  mix-blend-mode: screen;
+  opacity: 0.7;
+}
+
+/* A single damaged line that tears across the field now and then. */
+.corrupt__glitch {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 2px;
+  opacity: 0;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(152, 236, 222, 0.22) 18%,
+    rgba(152, 236, 222, 0.1) 62%,
+    transparent
+  );
+}
+
+/* Faint grain: an old screen trying to read damaged memory. */
+.corrupt__noise {
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='120' height='120' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* --------------------------------------------------------------------------
+   Reusable block (corrupted document block, memory fragment)
+   -------------------------------------------------------------------------- */
+.corrupt-block {
+  --corrupt-height: 56px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 3px;
+}
+
+.corrupt-block__field {
+  position: relative;
+  height: var(--corrupt-height);
+  max-width: 100%;
+}
+
+.corrupt-block__caption {
+  color: #5f6f6b;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.4px;
+}
+
+/* --------------------------------------------------------------------------
+   Motion — rare, shallow, never a glitch show
+   -------------------------------------------------------------------------- */
+@media (prefers-reduced-motion: no-preference) {
+  .corrupt__field {
+    animation: corrupt-flicker 11s linear infinite;
+  }
+
+  .corrupt--medium .corrupt__field {
+    animation-duration: 8s;
+    animation-delay: -3s;
+  }
+
+  .corrupt--heavy .corrupt__field {
+    animation-duration: 6.5s;
+    animation-delay: -5s;
+  }
+
+  /* Small groups of symbols drop out and return in discrete steps. */
+  .corrupt__pulse {
+    animation: corrupt-pulse 7.5s steps(1, end) infinite;
+  }
+
+  .corrupt--medium .corrupt__pulse {
+    animation-duration: 6s;
+    animation-delay: -2s;
+  }
+
+  .corrupt--heavy .corrupt__pulse {
+    animation-duration: 5s;
+    animation-delay: -3.4s;
+  }
+
+  .corrupt__interference {
+    animation: corrupt-drift 30s linear infinite;
+  }
+
+  .corrupt__glitch {
+    animation: corrupt-tear 13s steps(1, end) infinite;
+  }
+
+  .corrupt--heavy .corrupt__glitch {
+    animation-duration: 9.5s;
+  }
+}
+
+@keyframes corrupt-flicker {
+  0%,
+  88%,
+  100% {
+    opacity: var(--corrupt-rest, 1);
+  }
+  88.6% {
+    opacity: calc(var(--corrupt-rest, 1) * 0.84);
+  }
+  89.4% {
+    opacity: var(--corrupt-rest, 1);
+  }
+  95.2% {
+    opacity: calc(var(--corrupt-rest, 1) * 0.92);
+  }
+  95.8% {
+    opacity: var(--corrupt-rest, 1);
+  }
+}
+
+@keyframes corrupt-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  13% {
+    opacity: 0.2;
+  }
+  16% {
+    opacity: 0.9;
+  }
+  38% {
+    opacity: 0.35;
+  }
+  41% {
+    opacity: 1;
+  }
+  63% {
+    opacity: 0.15;
+  }
+  67% {
+    opacity: 0.85;
+  }
+  84% {
+    opacity: 0.45;
+  }
+  87% {
+    opacity: 1;
+  }
+}
+
+@keyframes corrupt-drift {
+  from {
+    transform: translateY(0);
+  }
+  to {
+    transform: translateY(9px);
+  }
+}
+
+@keyframes corrupt-tear {
+  0%,
+  90% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+  90.4% {
+    opacity: 0.8;
+    transform: translateY(38%);
+  }
+  91% {
+    opacity: 0;
+  }
+  91.6% {
+    opacity: 0.45;
+    transform: translateY(64%);
+  }
+  92.2% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(0);
+  }
+}
+
+/* Recovery: glyphs are erased top-down by JavaScript while the field fades. */
+.corrupt.is-recovering .corrupt__field,
+.corrupt.is-recovering .corrupt__interference,
+.corrupt.is-recovering .corrupt__glitch,
+.corrupt.is-recovering .corrupt__scan,
+.corrupt.is-recovering .corrupt__noise,
+.corrupt.is-recovered .corrupt__field {
+  animation: none;
+}
+
+.corrupt.is-recovered {
+  transition: opacity 260ms linear;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .corrupt__field,
+  .corrupt__interference,
+  .corrupt__glitch {
+    animation: none;
+  }
+
+  .corrupt.is-recovered {
+    transition: none;
+  }
+}

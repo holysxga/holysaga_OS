@@ -1,0 +1,12 @@
+{
+  "name": "holysaga-os",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "holysaga_oS — a personal space shaped like an old computer.",
+  "scripts": {
+    "serve": "node tools/serve.mjs",
+    "check": "node tools/check-i18n.mjs",
+    "icons": "node tools/make-icons.mjs"
+  }
+}

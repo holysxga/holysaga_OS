@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="audio file">
+  <rect x="2.5" y="2.5" width="27" height="27" fill="#d9d6c7" stroke="#081110" stroke-width="2" />
+  <rect x="6" y="6" width="20" height="14" fill="#101817" stroke="#081110" stroke-width="1.5" />
+  <path d="M9 10.5 L9 16 L10.5 16 L10.5 10.5 Z" fill="#72cdc6" />
+  <path d="M12.5 9 L12.5 17 L14 17 L14 9 Z" fill="#7bd2cb" />
+  <path d="M16 11.5 L16 15 L17.5 15 L17.5 11.5 Z" fill="#72cdc6" />
+  <path d="M19.5 10 L19.5 16.5 L21 16.5 L21 10 Z" fill="#7bd2cb" />
+  <path d="M22.5 12 L22.5 14.5 L24 14.5 L24 12 Z" fill="#5fb8b1" />
+  <rect x="6" y="22" width="12" height="2" fill="#081110" />
+  <rect x="6" y="25.5" width="7" height="1.5" fill="#4a4a44" />
+  <path d="M22 23 L22 27 L25 27 Q27 27 27 25.5 Q27 24.5 25 24.5 L25 23 Z" fill="#0c2a26" stroke="#081110" stroke-width="1" />
+</svg>

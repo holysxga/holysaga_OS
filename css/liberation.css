@@ -1,0 +1,1237 @@
+/* ==========================================================================
+   LIBERATION — the final desktop event
+   ==========================================================================
+   The layer is temporary and lives inside #desktop, above the normal window
+   layer. Its windows borrow the real .window chrome, but they are never
+   registered with the window manager: no taskbar buttons, no dragging, no
+   application state. When the layer leaves, the original desktop is exactly
+   where it was.
+   ========================================================================== */
+
+body.is-liberating {
+  cursor: default;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+body.is-liberating .window-layer,
+body.is-liberating .shortcuts,
+body.is-liberating .desktop-files,
+body.is-liberating .corruption-layer,
+body.is-liberating .twister-layer {
+  filter: brightness(0.38) saturate(0.38) blur(1.5px);
+  transition: filter 620ms ease;
+}
+
+body.is-liberating .taskbar {
+  filter: grayscale(0.75) brightness(0.56);
+  pointer-events: none;
+  transition: filter 620ms ease;
+}
+
+/* The mascot is deliberately not dimmed: when he has a short line during the
+   sequence, he belongs to the event rather than to the background. */
+
+.liberation-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 150;
+  overflow: hidden;
+  pointer-events: auto;
+  cursor: default;
+  background:
+    radial-gradient(120% 100% at 48% 42%, rgba(10, 47, 42, 0.18), rgba(1, 8, 7, 0.72) 78%),
+    linear-gradient(155deg, rgba(4, 20, 18, 0.86), rgba(2, 7, 7, 0.93));
+  /* The layer is opaque for as long as it exists. The entrance fade is a
+     one-shot class (see .is-entering) so the glitch, shift and pulse states
+     can use the animation slot without the layer snapping back to black and
+     fading in again. */
+  opacity: 1;
+  isolation: isolate;
+}
+
+/* One pass only: js/core/liberation.js removes the class when the fade ends,
+   and nothing else in this file may carry the liberation-layer-in animation. */
+.liberation-layer.is-entering {
+  animation: liberation-layer-in 680ms ease-out both;
+}
+
+.liberation-layer::before,
+.liberation-layer::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.liberation-layer::before {
+  z-index: 1;
+  background:
+    repeating-linear-gradient(0deg, rgba(178, 255, 241, 0.045) 0 1px, transparent 1px 4px),
+    radial-gradient(90% 90% at 50% 50%, transparent 45%, rgba(0, 0, 0, 0.42) 100%);
+  opacity: 0.7;
+  mix-blend-mode: screen;
+}
+
+.liberation-layer::after {
+  z-index: 2;
+  background:
+    linear-gradient(90deg, rgba(175, 40, 44, 0.035), transparent 18%, transparent 82%, rgba(62, 199, 184, 0.04)),
+    radial-gradient(ellipse at center, transparent 45%, rgba(0, 0, 0, 0.34) 100%);
+}
+
+.liberation-layer.is-resolving {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 1.1s ease;
+}
+
+.liberation-layer.is-shift {
+  animation: liberation-layer-shift 680ms steps(2, end);
+}
+
+.liberation-layer.is-pulse {
+  animation: liberation-pulse 820ms steps(2, end);
+}
+
+.liberation-layer.is-peak .liberation-window {
+  box-shadow:
+    inset 1px 1px 0 #ffffff,
+    inset -1px -1px 0 #808080,
+    3px 3px 0 rgba(0, 0, 0, 0.5),
+    0 0 22px rgba(123, 210, 203, 0.16);
+}
+
+/* Boot card: it is visible only while the soundtrack is being prepared. */
+.liberation-boot {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 1;
+  transition: opacity 420ms ease;
+}
+
+.liberation-layer.is-live .liberation-boot {
+  opacity: 0;
+}
+
+.liberation-boot__title {
+  color: #e9f8f3;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 6.2vw, 76px);
+  letter-spacing: 0.18em;
+  text-shadow:
+    2px 0 0 rgba(177, 45, 48, 0.38),
+    -2px 0 0 rgba(73, 213, 195, 0.42),
+    0 0 34px rgba(112, 220, 203, 0.18);
+}
+
+.liberation-boot__code {
+  color: #79bcae;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+}
+
+/* --------------------------------------------------------------------------
+   Temporary windows
+   -------------------------------------------------------------------------- */
+
+.liberation-window {
+  position: absolute;
+  width: var(--lib-w);
+  height: var(--lib-h);
+  min-width: 0;
+  min-height: 0;
+  max-width: calc(100% - 8px);
+  max-height: calc(100% - 8px);
+  left: min(var(--x), calc(100% - var(--lib-w) - 8px));
+  top: min(var(--y), calc(100% - var(--lib-h) - 8px));
+  padding: 2px;
+  border-color: #d8e8e1 #080d0c #080d0c #d8e8e1;
+  box-shadow:
+    inset 1px 1px 0 #f1faf5,
+    inset -1px -1px 0 #777d78,
+    3px 3px 0 rgba(0, 0, 0, 0.46),
+    0 0 18px rgba(0, 0, 0, 0.2);
+  opacity: 0;
+  transform: translateY(10px) scale(0.965);
+  transition:
+    opacity 150ms ease-out,
+    transform 190ms cubic-bezier(0.16, 0.84, 0.24, 1);
+  pointer-events: none;
+  will-change: opacity, transform;
+}
+
+.liberation-window.is-open {
+  opacity: 1;
+  transform: none;
+}
+
+.liberation-window.is-closing {
+  opacity: 0;
+  transform: translateY(-7px) scale(0.95);
+  transition-duration: 300ms;
+}
+
+.liberation-window::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(0deg, rgba(228, 255, 246, 0.045) 0 1px, transparent 1px 3px);
+  opacity: 0.45;
+  mix-blend-mode: screen;
+}
+
+.liberation-window .window__titlebar {
+  height: 16px;
+  padding: 0 2px;
+  gap: 3px;
+  font-size: 8px;
+  letter-spacing: 0.08em;
+}
+
+.liberation-window .window__icon {
+  width: 11px;
+  height: 11px;
+}
+
+.liberation-window .window__title {
+  letter-spacing: 0.08em;
+}
+
+.liberation-window .window__controls {
+  gap: 1px;
+  margin-left: 3px;
+}
+
+.liberation-window .window__btn {
+  width: 11px;
+  height: 10px;
+}
+
+.liberation-window .window__btn--close::before,
+.liberation-window .window__btn--close::after {
+  width: 6px;
+  height: 1px;
+}
+
+.liberation-window .window__btn--min::after {
+  right: 3px;
+  bottom: 3px;
+  left: 3px;
+  height: 1px;
+}
+
+.liberation-window.is-closing::before {
+  opacity: 0;
+}
+
+.tone-chaos .window__titlebar {
+  background: linear-gradient(90deg, #2b0808 0%, #8f3228 100%);
+}
+
+.tone-culture .window__titlebar {
+  background: linear-gradient(90deg, #180d26 0%, #5e3d72 100%);
+}
+
+.tone-signal .window__titlebar {
+  background: linear-gradient(90deg, #020807 0%, #0b403a 68%, #641b1c 100%);
+}
+
+/* Window sizes. Each one is a little different; none is a card in a grid. */
+.liberation-window--image {
+  --lib-w: clamp(238px, 21vw, 340px);
+  --lib-h: clamp(168px, 24vh, 250px);
+}
+
+.liberation-window--wide {
+  --lib-w: clamp(320px, 31vw, 520px);
+  --lib-h: clamp(212px, 30vh, 350px);
+}
+
+.liberation-window--culture {
+  --lib-w: clamp(246px, 23vw, 382px);
+  --lib-h: clamp(172px, 24vh, 272px);
+}
+
+.liberation-window--mood {
+  --lib-w: clamp(280px, 27vw, 430px);
+  --lib-h: clamp(205px, 30vh, 310px);
+}
+
+.liberation-window--thread {
+  --lib-w: clamp(276px, 26vw, 400px);
+  --lib-h: clamp(168px, 22vh, 250px);
+}
+
+.liberation-window--word {
+  --lib-w: clamp(96px, 13vw, 170px);
+  --lib-h: clamp(72px, 10vh, 104px);
+}
+
+.liberation-window--phrase {
+  --lib-w: clamp(300px, 35vw, 540px);
+  --lib-h: clamp(108px, 15vh, 170px);
+}
+
+.liberation-window--large {
+  --lib-w: clamp(340px, 44vw, 680px);
+  --lib-h: clamp(128px, 18vh, 220px);
+}
+
+.liberation-window--finale {
+  --lib-w: clamp(360px, 50vw, 760px);
+  --lib-h: clamp(138px, 20vh, 240px);
+}
+
+.liberation-window--signal {
+  --lib-w: clamp(188px, 17vw, 262px);
+  --lib-h: clamp(244px, 35vh, 370px);
+}
+
+.liberation-window--signalWide {
+  --lib-w: clamp(258px, 26vw, 400px);
+  --lib-h: clamp(168px, 22vh, 240px);
+}
+
+.liberation-window--word .window__body {
+  background: #071412;
+}
+
+.liberation-window--word .window__titlebar {
+  font-size: 6.5px;
+}
+
+.liberation-window--word .window__icon {
+  display: none;
+}
+
+/* Each word is a real little window: keep its close control even when the
+   title bar is only 16px tall. */
+.liberation-window--word .window__btn {
+  display: block;
+}
+
+.liberation-window--word .window__controls {
+  margin-left: auto;
+}
+
+/* --------------------------------------------------------------------------
+   Content
+   -------------------------------------------------------------------------- */
+
+.lib-media {
+  position: relative;
+  flex: 1 1 auto;
+  min-height: 0;
+  margin: 0;
+  overflow: hidden;
+  background: #06100e;
+  border: 1px solid #050b0a;
+}
+
+.lib-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.92) contrast(1.03);
+  user-select: none;
+}
+
+.lib-media::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.08), transparent 36%),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.07) 0 1px, transparent 1px 4px);
+}
+
+.lib-media__caption {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 13px 5px 3px;
+  color: #e7f6ef;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.12em;
+  text-shadow: 0 1px 2px #000;
+  background: linear-gradient(transparent, rgba(1, 7, 6, 0.86));
+}
+
+.lib-media__tag {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  padding: 1px 4px;
+  color: #d9f4ea;
+  font-family: var(--font-mono);
+  font-size: 6.5px;
+  letter-spacing: 0.06em;
+  background: rgba(4, 20, 18, 0.72);
+  border: 1px solid rgba(152, 224, 207, 0.32);
+}
+
+.tone-chaos .lib-media img {
+  filter: saturate(1.08) contrast(1.08);
+}
+
+.tone-chaos .lib-media__caption {
+  color: #f0d9d1;
+}
+
+.lib-word {
+  display: grid;
+  flex: 1 1 auto;
+  place-items: center;
+  min-height: 0;
+  padding: 2px;
+  overflow: hidden;
+  background:
+    radial-gradient(90% 80% at 50% 45%, #123b35, #06100e 80%);
+  border: 1px solid #050b0a;
+}
+
+.lib-word span {
+  max-width: 100%;
+  color: #edfcf7;
+  font-family: var(--font-label);
+  font-size: clamp(14px, 2.1vw, 28px);
+  line-height: 1.05;
+  letter-spacing: 0.05em;
+  text-align: center;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+  text-shadow:
+    0 0 8px rgba(123, 210, 203, 0.28),
+    1px 0 0 rgba(177, 45, 48, 0.18);
+}
+
+.lib-word span[data-long="true"] {
+  font-size: clamp(9px, 1.5vw, 20px);
+  letter-spacing: 0.01em;
+}
+
+.liberation-window--phrase .window__body,
+.liberation-window--large .window__body,
+.liberation-window--finale .window__body {
+  background: #07110f;
+}
+
+.lib-copy {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  justify-content: center;
+  gap: 8px;
+  min-height: 0;
+  padding: 9px 13px 7px;
+  overflow: hidden;
+  background:
+    radial-gradient(110% 100% at 20% 30%, rgba(31, 90, 79, 0.36), transparent 64%),
+    #07110f;
+  border: 1px solid #050b0a;
+}
+
+.lib-copy__text {
+  color: #eaf9f3;
+  font-family: var(--font-label);
+  font-size: clamp(12px, 1.5vw, 21px);
+  line-height: 1.28;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
+  text-wrap: balance;
+  text-shadow:
+    0 0 10px rgba(123, 210, 203, 0.18),
+    1px 0 0 rgba(177, 45, 48, 0.16);
+}
+
+.liberation-window--large .lib-copy__text,
+.liberation-window--finale .lib-copy__text {
+  font-size: clamp(18px, 2.4vw, 36px);
+  letter-spacing: 0.06em;
+}
+
+.lib-copy__meta {
+  color: #5f9184;
+  font-family: var(--font-mono);
+  font-size: 7px;
+  letter-spacing: 0.14em;
+}
+
+.liberation-window--finale .lib-copy {
+  background:
+    radial-gradient(80% 120% at 50% 50%, rgba(117, 104, 48, 0.25), transparent 68%),
+    #050c0b;
+  border-color: #2e3d36;
+}
+
+.liberation-window--finale .lib-copy__text {
+  color: #f3e8c8;
+  text-shadow:
+    0 0 16px rgba(228, 211, 168, 0.25),
+    1px 0 0 rgba(177, 45, 48, 0.16);
+}
+
+/* Moodboard: the project's own abstract photographs, not fake websites. */
+.lib-mood {
+  display: grid;
+  flex: 1 1 auto;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 2px;
+  min-height: 0;
+  padding: 2px;
+  background: #050b0a;
+}
+
+.lib-mood__cell {
+  position: relative;
+  min-height: 0;
+  overflow: hidden;
+  border: 1px solid #2b3431;
+}
+
+.lib-mood__cell img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  filter: saturate(0.8) contrast(1.1);
+}
+
+.lib-mood__cell figcaption {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  left: 2px;
+  color: #d6e9e2;
+  font-family: var(--font-mono);
+  font-size: 5.5px;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 2px #000;
+}
+
+/* A generic forum thread: the shape of internet culture without copying a
+   third-party site or inventing an advertisement. */
+.lib-thread {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 5px;
+  min-height: 0;
+  padding: 7px 8px 6px;
+  overflow: hidden;
+  color: #202724;
+  font-family: var(--font-mono);
+  background:
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.025) 0 1px, transparent 1px 4px),
+    #e7e6dc;
+  border: 1px solid #050b0a;
+}
+
+.lib-thread__head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding-bottom: 3px;
+  color: #4b5b56;
+  font-size: 7px;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid #b8b9ae;
+}
+
+.lib-thread__post {
+  color: #173c35;
+  font-family: var(--font-body);
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.lib-thread__line {
+  color: #6b6a60;
+  font-size: 7.5px;
+  line-height: 1.4;
+}
+
+.lib-thread__tags {
+  margin-top: auto;
+  color: #2e6b61;
+  font-size: 6.5px;
+  letter-spacing: 0.05em;
+}
+
+/* --------------------------------------------------------------------------
+   SIGNALS — the same portrait, seen through a window
+   -------------------------------------------------------------------------- */
+
+.lib-signal {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 3px;
+  min-height: 0;
+  overflow: hidden;
+  background: #020807;
+  border: 1px solid #050b0a;
+}
+
+.lib-signal__portrait {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: #020706;
+}
+
+.lib-signal__portrait img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: 50% 36%;
+  filter: grayscale(1) contrast(1.48) brightness(0.78) sepia(0.24) hue-rotate(118deg);
+  mix-blend-mode: screen;
+  user-select: none;
+}
+
+.lib-signal__scan {
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(134, 255, 231, 0.28) 0 1px, transparent 1px 3px),
+    linear-gradient(90deg, rgba(194, 34, 40, 0.15), transparent 30%, transparent 70%, rgba(55, 220, 198, 0.16));
+  mix-blend-mode: screen;
+  opacity: 0.5;
+}
+
+.lib-signal__read {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: 16px 5px 4px;
+  background: linear-gradient(transparent, rgba(1, 7, 6, 0.92));
+}
+
+.lib-signal__id {
+  color: #9aeee0;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-shadow: 0 0 7px rgba(75, 226, 201, 0.45);
+}
+
+.lib-signal__code {
+  color: #548d82;
+  font-family: var(--font-mono);
+  font-size: 6.5px;
+  letter-spacing: 0.09em;
+}
+
+.lib-signal--command {
+  align-items: stretch;
+}
+
+.lib-signal--command .lib-signal__portrait {
+  flex: 0 0 44%;
+}
+
+.lib-signal--command .lib-signal__read {
+  position: relative;
+  justify-content: center;
+  padding: 6px;
+  background: #020807;
+}
+
+.lib-signal--command .lib-signal__id {
+  color: #b5f4e8;
+  font-size: 10px;
+}
+
+.lib-signal--corrupt .lib-signal__portrait img {
+  filter: grayscale(1) contrast(1.8) brightness(0.65) sepia(0.35) hue-rotate(105deg);
+  transform: translateX(2px);
+}
+
+.lib-signal--corrupt .lib-signal__scan {
+  opacity: 0.8;
+  animation: liberation-signal-scan 1.2s steps(2, end) infinite;
+}
+
+.lib-signal--corrupt::after {
+  content: "";
+  position: absolute;
+  inset: 18% 0 26% 0;
+  z-index: 1;
+  pointer-events: none;
+  background: rgba(196, 45, 50, 0.18);
+  mix-blend-mode: screen;
+  animation: liberation-corrupt-band 1.7s steps(1, end) infinite;
+}
+
+/* --------------------------------------------------------------------------
+   Movement effects
+   -------------------------------------------------------------------------- */
+
+@keyframes liberation-layer-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes liberation-layer-shift {
+  0%,
+  100% {
+    transform: translate(0, 0);
+  }
+  15% {
+    transform: translate(-3px, 1px);
+  }
+  17% {
+    transform: translate(2px, -1px);
+  }
+  35% {
+    transform: translate(0, 0);
+  }
+  52% {
+    transform: translate(3px, 0);
+  }
+  54% {
+    transform: translate(0, 1px);
+  }
+  78% {
+    transform: translate(-1px, 0);
+  }
+}
+
+@keyframes liberation-pulse {
+  0%,
+  100% {
+    background-color: transparent;
+  }
+  30% {
+    background-color: rgba(202, 255, 244, 0.055);
+  }
+  46% {
+    background-color: rgba(177, 45, 48, 0.035);
+  }
+  62% {
+    background-color: rgba(202, 255, 244, 0.04);
+  }
+}
+
+@keyframes liberation-signal-scan {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(2px);
+  }
+}
+
+@keyframes liberation-corrupt-band {
+  0%,
+  84%,
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  84.5% {
+    transform: translateY(14px);
+    opacity: 0.9;
+  }
+  85.5% {
+    transform: translateY(19px);
+    opacity: 0.25;
+  }
+  87% {
+    transform: translateY(-9px);
+    opacity: 0.7;
+  }
+  88% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .liberation-window.is-open {
+    animation: liberation-arrive 220ms steps(3, end) both;
+  }
+
+  .tone-signal.is-open {
+    animation:
+      liberation-arrive 200ms steps(2, end) both,
+      liberation-signal-flicker 1.8s steps(1, end) infinite;
+  }
+}
+
+@keyframes liberation-arrive {
+  0% {
+    filter: brightness(2.2);
+  }
+  100% {
+    filter: none;
+  }
+}
+
+@keyframes liberation-signal-flicker {
+  0%,
+  91%,
+  100% {
+    filter: none;
+  }
+  91.5% {
+    filter: brightness(1.5) contrast(1.2);
+  }
+  92.4% {
+    filter: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Taskbar entry — the subtle permanent mark left after the event
+   -------------------------------------------------------------------------- */
+
+.taskbar__liberation {
+  display: inline-grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 22px;
+  height: 20px;
+  margin: 0 2px;
+  padding: 0;
+  color: #1b4b46;
+  background: #cbd0c5;
+}
+
+.taskbar__liberation-glyph {
+  display: block;
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.taskbar__liberation:hover {
+  background: #d7dbd0;
+}
+
+.taskbar__liberation.is-ready {
+  animation: liberation-entry-ready 3.4s steps(2, end) infinite;
+}
+
+.taskbar__liberation.is-complete {
+  color: #6b531e;
+  background: #e4d3a8;
+}
+
+@keyframes liberation-entry-ready {
+  0%,
+  100% {
+    box-shadow:
+      inset 1px 1px 0 #ffffff,
+      inset -1px -1px 0 #808080;
+  }
+  50% {
+    box-shadow:
+      inset 1px 1px 0 #ffffff,
+      inset -1px -1px 0 #808080,
+      0 0 0 1px rgba(123, 210, 203, 0.5);
+  }
+}
+
+/* The final message has two choices; the secondary one is quieter. */
+.mascot__actions {
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.mascot__action.mascot__action--secondary {
+  min-width: 0;
+  background: transparent;
+  border-color: rgba(0, 0, 0, 0.28);
+  box-shadow: none;
+}
+
+.mascot__action.mascot__action--secondary:hover {
+  background: rgba(0, 0, 0, 0.07);
+}
+
+/* --------------------------------------------------------------------------
+   Small screens and reduced motion
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 800px) {
+  .liberation-window--image,
+  .liberation-window--culture {
+    --lib-w: clamp(180px, 46vw, 290px);
+    --lib-h: clamp(126px, 20vh, 200px);
+  }
+
+  .liberation-window--wide {
+    --lib-w: clamp(230px, 58vw, 360px);
+    --lib-h: clamp(156px, 24vh, 240px);
+  }
+
+  .liberation-window--mood {
+    --lib-w: clamp(220px, 56vw, 340px);
+    --lib-h: clamp(160px, 24vh, 240px);
+  }
+
+  .liberation-window--thread {
+    --lib-w: clamp(230px, 58vw, 340px);
+    --lib-h: clamp(150px, 22vh, 220px);
+  }
+
+  .liberation-window--word {
+    --lib-w: clamp(62px, 17vw, 112px);
+    --lib-h: clamp(54px, 8vh, 78px);
+  }
+
+  .liberation-window--phrase {
+    --lib-w: clamp(220px, 78vw, 470px);
+    --lib-h: clamp(96px, 14vh, 150px);
+  }
+
+  .liberation-window--large,
+  .liberation-window--finale {
+    --lib-w: clamp(250px, 86vw, 560px);
+    --lib-h: clamp(116px, 17vh, 190px);
+  }
+
+  .liberation-window--signal {
+    --lib-w: clamp(140px, 44vw, 220px);
+    --lib-h: clamp(196px, 30vh, 300px);
+  }
+
+  .liberation-window--signalWide {
+    --lib-w: clamp(220px, 62vw, 340px);
+    --lib-h: clamp(148px, 21vh, 220px);
+  }
+
+  .lib-word span {
+    font-size: clamp(11px, 2.6vw, 20px);
+  }
+
+  .lib-word span[data-long="true"] {
+    font-size: clamp(9px, 1.7vw, 14px);
+  }
+
+  .lib-copy__text {
+    font-size: clamp(11px, 2.4vw, 17px);
+  }
+}
+
+@media (max-width: 560px) {
+  .liberation-window--word {
+    --lib-w: clamp(56px, 21vw, 94px);
+    --lib-h: clamp(48px, 7vh, 68px);
+  }
+
+  .lib-word span {
+    font-size: 10px;
+    letter-spacing: 0.02em;
+  }
+
+  .lib-word span[data-long="true"] {
+    font-size: 8px;
+  }
+
+  .lib-copy {
+    padding: 7px 9px 6px;
+  }
+
+  .lib-copy__text {
+    font-size: 11px;
+  }
+
+  .lib-signal__id {
+    font-size: 8px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liberation-layer,
+  .liberation-layer.is-entering,
+  .liberation-window,
+  .liberation-window.is-open,
+  .liberation-window.is-closing,
+  .liberation-layer.is-resolving {
+    animation: none;
+    transition: none;
+  }
+
+  .liberation-layer {
+    opacity: 1;
+  }
+
+  .liberation-window {
+    opacity: 1;
+    transform: none;
+  }
+
+  .liberation-window.is-closing {
+    opacity: 0;
+  }
+
+  .liberation-layer.is-shift,
+  .liberation-layer.is-pulse,
+  .liberation-signal--corrupt .lib-signal__scan,
+  .liberation-signal--corrupt::after,
+  .taskbar__liberation.is-ready {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   The title returns at 1:17 — same identity as the boot card
+   -------------------------------------------------------------------------- */
+
+.liberation-title {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  display: grid;
+  place-content: center;
+  gap: 8px;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 520ms ease;
+}
+
+.liberation-title.is-open {
+  opacity: 1;
+}
+
+.liberation-title.is-leaving {
+  opacity: 0;
+}
+
+.liberation-title__word {
+  position: relative;
+  display: block;
+}
+
+.liberation-title__code {
+  color: #79bcae;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.24em;
+}
+
+/* Misaligned copies of the same word: never opaque enough to replace it. */
+.liberation-title__ghost {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: #d9fff6;
+  font-family: var(--font-display);
+  font-size: clamp(30px, 6.2vw, 76px);
+  letter-spacing: 0.18em;
+  white-space: nowrap;
+  opacity: var(--g-ink, 0.42);
+  mix-blend-mode: screen;
+  text-shadow:
+    2px 0 0 rgba(177, 45, 48, 0.5),
+    -2px 0 0 rgba(73, 213, 195, 0.55);
+  transform: translate(-50%, -50%) translate(var(--gx, 0px), var(--gy, 0px));
+  pointer-events: none;
+}
+
+.liberation-layer.is-glitch-subtle {
+  animation: liberation-glitch-subtle 380ms steps(2, end);
+}
+
+.liberation-layer.is-glitch-hard {
+  animation: liberation-glitch-hard 320ms steps(2, end);
+}
+
+.liberation-layer.is-glitch-hard::before {
+  opacity: 1;
+}
+
+/* The glitch states only shake and shear the layer: no opacity keyframes, so
+   the desktop never dips back towards black and no entrance fade can replay. */
+@keyframes liberation-glitch-subtle {
+  0%,
+  100% {
+    transform: translate(0, 0) skewX(0deg);
+  }
+  14% {
+    transform: translate(-4px, 1px) skewX(-0.5deg);
+  }
+  16% {
+    transform: translate(3px, -1px) skewX(0.4deg);
+  }
+  38% {
+    transform: translate(0, 0) skewX(0deg);
+  }
+  61% {
+    transform: translate(4px, 0) skewX(0.5deg);
+  }
+  63% {
+    transform: translate(-2px, 1px) skewX(-0.3deg);
+  }
+  84% {
+    transform: translate(0, 0) skewX(0deg);
+  }
+}
+
+@keyframes liberation-glitch-hard {
+  0% {
+    transform: translate(0, 0) skewX(0deg) scale(1);
+  }
+  8% {
+    transform: translate(-11px, 3px) skewX(-1.4deg) scale(1.006);
+  }
+  11% {
+    transform: translate(9px, -3px) skewX(1.1deg) scale(1);
+  }
+  22% {
+    transform: translate(-4px, 0) skewX(-0.7deg) scale(1);
+  }
+  26% {
+    transform: translate(13px, 2px) skewX(1.6deg) scale(1.004);
+  }
+  44% {
+    transform: translate(-8px, -2px) skewX(-1deg) scale(1);
+  }
+  47% {
+    transform: translate(6px, 3px) skewX(0.9deg) scale(1.003);
+  }
+  66% {
+    transform: translate(-14px, 1px) skewX(-1.6deg) scale(1);
+  }
+  70% {
+    transform: translate(11px, -2px) skewX(1.2deg) scale(1.005);
+  }
+  88% {
+    transform: translate(-3px, 2px) skewX(-0.4deg) scale(1);
+  }
+  100% {
+    transform: translate(0, 0) skewX(0deg) scale(1);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Image/text conversations and single words
+   -------------------------------------------------------------------------- */
+
+.liberation-window--pair {
+  --lib-w: clamp(196px, 21vw, 304px);
+  --lib-h: clamp(62px, 9vh, 88px);
+}
+
+.liberation-window--pair .window__body {
+  background: #07110f;
+}
+
+.liberation-window--pair .lib-copy {
+  gap: 4px;
+  padding: 6px 9px;
+}
+
+.liberation-window--pair .lib-copy__text {
+  font-size: clamp(10px, 1.15vw, 15px);
+  letter-spacing: 0.06em;
+}
+
+.liberation-window--pair .lib-copy__meta {
+  display: none;
+}
+
+.liberation-window--single {
+  --lib-w: clamp(150px, 19vw, 260px);
+  --lib-h: clamp(96px, 13vh, 150px);
+}
+
+.liberation-window--single .window__body {
+  background: #071412;
+}
+
+.liberation-window--single .lib-word span {
+  font-size: clamp(22px, 3.4vw, 46px);
+  letter-spacing: 0.08em;
+}
+
+.liberation-window--single .lib-word span[data-long="true"] {
+  font-size: clamp(16px, 2.4vw, 30px);
+}
+
+/* Corrupted transmissions are machine noise, not translations. */
+.lib-copy.is-corrupt {
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(224, 96, 84, 0.08) 0 1px,
+      transparent 1px 3px
+    ),
+    #0a0707;
+  border-color: #2a1412;
+}
+
+.lib-copy.is-corrupt .lib-copy__text {
+  color: #f0d6cd;
+  font-family: var(--font-mono);
+  font-size: clamp(10px, 1.2vw, 16px);
+  letter-spacing: 0.04em;
+  text-transform: none;
+  text-shadow:
+    1px 0 0 rgba(177, 45, 48, 0.5),
+    -1px 0 0 rgba(73, 213, 195, 0.28);
+}
+
+@media (max-width: 800px) {
+  .liberation-window--pair {
+    --lib-w: clamp(168px, 62vw, 260px);
+    --lib-h: clamp(56px, 8vh, 78px);
+  }
+
+  .liberation-window--single {
+    --lib-w: clamp(104px, 34vw, 180px);
+    --lib-h: clamp(70px, 10vh, 110px);
+  }
+
+  .liberation-window--single .lib-word span {
+    font-size: clamp(18px, 5.4vw, 30px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liberation-title {
+    transition: none;
+  }
+
+  .liberation-layer.is-glitch-subtle,
+  .liberation-layer.is-glitch-hard {
+    animation: none;
+  }
+}

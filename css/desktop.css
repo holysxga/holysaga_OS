@@ -1,0 +1,2051 @@
+/* ==========================================================================
+   Desktop, shortcuts, taskbar and Start menu
+   ========================================================================== */
+
+.desktop {
+  position: relative;
+  height: calc(100dvh - var(--taskbar-h));
+  overflow: hidden;
+  background-color: var(--desktop-bg);
+  /* Aged teal wallpaper: fine thread, a coarser woven grid every 15px, a soft
+     light from the upper left and the vignette of a tired monitor. */
+  background-image:
+    radial-gradient(120% 90% at 42% 4%, rgba(255, 255, 255, 0.075), transparent 62%),
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.03) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(0deg, rgba(0, 0, 0, 0.045) 0 1px, transparent 1px 3px),
+    repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.055) 0 1px, transparent 1px 15px),
+    repeating-linear-gradient(0deg, rgba(255, 255, 255, 0.028) 0 1px, transparent 1px 15px),
+    radial-gradient(125% 125% at 50% 42%, transparent 52%, rgba(0, 0, 0, 0.3) 100%);
+  box-shadow: inset 0 0 110px rgba(0, 0, 0, 0.2);
+}
+
+/* Grain. The monitor is old; the wallpaper has been re-saved a few times. */
+.desktop::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23g)'/%3E%3C/svg%3E");
+  opacity: 0.14;
+  mix-blend-mode: overlay;
+}
+
+/* --------------------------------------------------------------------------
+   Shortcuts
+   -------------------------------------------------------------------------- */
+.shortcuts {
+  position: relative;
+  z-index: 5;
+  height: 100%;
+  padding: 13px 4px 8px;
+  overflow: hidden;
+}
+
+.shortcuts__list {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+  height: 100%;
+}
+
+.shortcut-item {
+  flex: 0 0 auto;
+  width: 96px;
+}
+
+/* SIGNALS does not exist at boot. When it appears, the normal shortcut markup
+   arrives with a short stepped fade rather than a notification or popup. */
+.shortcut-item.is-new {
+  animation: shortcut-arrive 780ms steps(5, end) both;
+}
+
+.shortcut-item.is-new .shortcut__thumb {
+  animation: shortcut-new-signal 900ms steps(3, end) 2;
+}
+
+@keyframes shortcut-arrive {
+  from {
+    opacity: 0;
+    transform: translateX(-9px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes shortcut-new-signal {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 0 0 1px rgba(236, 244, 239, 0.22),
+      inset 0 0 9px 3px rgba(0, 0, 0, 0.72),
+      0 2px 3px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    box-shadow:
+      0 0 0 2px rgba(123, 210, 203, 0.72),
+      inset 0 0 10px 3px rgba(14, 63, 56, 0.9),
+      0 2px 3px rgba(0, 0, 0, 0.5);
+  }
+}
+
+.shortcut {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  width: 100%;
+  padding: 2px 2px 3px;
+  color: #eef5f1;
+  text-align: center;
+}
+
+/* Circular medallion: dark enamel behind the app's own pixel icon, a thin
+   metallic rim, and a fraction of a degree of handmade crookedness. */
+.shortcut__thumb {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 36% 28%, #59645f 0%, #2b3633 46%, #111816 100%);
+  border: 1px solid #090e0d;
+  box-shadow:
+    inset 0 0 0 1px rgba(236, 244, 239, 0.22),
+    inset 0 0 9px 3px rgba(0, 0, 0, 0.72),
+    0 1px 0 rgba(255, 255, 255, 0.14),
+    0 2px 3px rgba(0, 0, 0, 0.5);
+  transform: rotate(-1.2deg);
+}
+
+/* A worn sheen along the rim, like a scanned photo in a cheap frame. */
+.shortcut__thumb::after {
+  content: "";
+  position: absolute;
+  inset: 3px;
+  border-radius: 50%;
+  border: 1px solid rgba(214, 226, 219, 0.15);
+  background: linear-gradient(152deg, rgba(255, 255, 255, 0.17), rgba(255, 255, 255, 0) 40%);
+  pointer-events: none;
+}
+
+.shortcut-item:nth-child(2n) .shortcut__thumb {
+  transform: rotate(0.9deg);
+}
+
+.shortcut-item:nth-child(3n) .shortcut__thumb {
+  transform: rotate(-0.4deg);
+}
+
+.shortcut__icon {
+  position: relative;
+  z-index: 1;
+  width: 26px;
+  height: 26px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7));
+}
+
+.shortcut__label {
+  max-width: 92px;
+  padding: 1px 3px;
+  color: #f0f6f2;
+  font-family: var(--font-label);
+  font-size: 11px;
+  line-height: 1.35;
+  letter-spacing: 0.05em;
+  overflow-wrap: anywhere;
+  text-shadow:
+    0 1px 0 rgba(0, 0, 0, 0.8),
+    0 0 6px rgba(0, 0, 0, 0.45);
+}
+
+.shortcut:hover .shortcut__label {
+  text-decoration: underline;
+}
+
+.shortcut:hover .shortcut__thumb {
+  box-shadow:
+    inset 0 0 0 1px rgba(246, 252, 248, 0.34),
+    inset 0 0 9px 3px rgba(0, 0, 0, 0.66),
+    0 1px 0 rgba(255, 255, 255, 0.2),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.shortcut.is-selected .shortcut__thumb {
+  box-shadow:
+    inset 0 0 0 1px rgba(198, 236, 220, 0.6),
+    inset 0 0 9px 3px rgba(0, 0, 0, 0.66),
+    0 0 0 2px rgba(9, 30, 26, 0.6),
+    0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.shortcut.is-selected .shortcut__label {
+  background: rgba(8, 34, 29, 0.8);
+  outline: 1px dotted rgba(233, 244, 239, 0.85);
+  outline-offset: 1px;
+}
+
+.shortcut:focus-visible {
+  outline: 1px dotted #f2f8f4;
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Taskbar
+   -------------------------------------------------------------------------- */
+.taskbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  height: var(--taskbar-h);
+  padding: 2px 2px 2px 1px;
+  background: var(--frame);
+  border-top: 1px solid var(--frame-hi);
+  box-shadow: inset 0 1px 0 var(--white);
+}
+
+.taskbar__start {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding: 0 8px 0 4px;
+  font-weight: 700;
+}
+
+.taskbar__start.is-pressed {
+  border-color: var(--black) var(--frame-hi) var(--frame-hi) var(--black);
+  box-shadow: inset 1px 1px 0 var(--edge-dark);
+}
+
+.taskbar__start-label {
+  font-size: 13px;
+  font-family: var(--font-label);
+}
+
+.taskbar__start-icon,
+.task__icon {
+  image-rendering: pixelated;
+}
+
+.taskbar__divider {
+  flex: 0 0 auto;
+  width: 2px;
+  height: 22px;
+  margin: 0 1px;
+  border-left: 1px solid var(--edge-dark);
+  border-right: 1px solid var(--white);
+}
+
+.taskbar__tasks {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 3px;
+  min-width: 0;
+  height: 24px;
+  overflow: hidden;
+}
+
+/* Quick-launch strip for unlocked desktop tools. A fixed slot in the bar: it
+   pushes the window buttons, so it can never sit on top of Start or the tray. */
+.taskbar__tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 3px;
+  height: 24px;
+}
+
+.taskbar__tools:empty {
+  display: none;
+}
+
+/* A compact, raised Win98 button: the icon is the whole label. */
+.tasktool {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 24px;
+  background: var(--frame);
+}
+
+.tasktool:hover {
+  background: #c9cbc2;
+}
+
+.tasktool__icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  image-rendering: pixelated;
+}
+
+.tasktool__icon svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Active: the same sunken well and dither as a pressed task button. */
+.tasktool[aria-pressed="true"],
+.tasktool:active {
+  background-color: var(--frame);
+  background-image: repeating-conic-gradient(#bfc1b8 0% 25%, #d8dad1 0% 50%);
+  background-size: 2px 2px;
+  border-color: var(--black) var(--frame-hi) var(--frame-hi) var(--black);
+  box-shadow:
+    inset 1px 1px 0 var(--edge-dark),
+    inset -1px -1px 0 var(--frame-hi);
+}
+
+/* First unlock: a slow, stepped edge highlight instead of a notification dot.
+   Six beats keep it visible long enough to notice, then the button returns to
+   ordinary chrome. The extra hard cyan ring pulses from the raised border. */
+.tasktool.is-fresh {
+  animation: tasktool-fresh 900ms steps(2, end) 6;
+}
+
+@keyframes tasktool-fresh {
+  0%,
+  100% {
+    border-color: var(--frame-hi) var(--black) var(--black) var(--frame-hi);
+    box-shadow:
+      inset 1px 1px 0 var(--white),
+      inset -1px -1px 0 var(--edge-dark);
+  }
+  50% {
+    border-color: #7bd2cb #1b4b46 #1b4b46 #7bd2cb;
+    box-shadow:
+      0 0 0 2px #7bd2cb,
+      inset 1px 1px 0 var(--white),
+      inset -1px -1px 0 var(--edge-dark);
+  }
+}
+
+.task {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 1 168px;
+  min-width: 0;
+  height: 24px;
+  padding: 0 5px;
+  text-align: left;
+}
+
+.task__label {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 13px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-family: var(--font-body);
+}
+
+.task.is-active {
+  background-image: repeating-conic-gradient(#c0c0c0 0% 25%, #dcdcdc 0% 50%);
+  background-size: 2px 2px;
+  border-color: var(--black) var(--frame-hi) var(--frame-hi) var(--black);
+  box-shadow:
+    inset 1px 1px 0 var(--edge-dark),
+    inset -1px -1px 0 var(--frame-hi);
+  font-weight: 700;
+}
+
+.task.is-minimized .task__label {
+  font-style: italic;
+}
+
+.taskbar__tray {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 7px;
+}
+
+.clock {
+  min-width: 48px;
+  font-size: 13px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-body);
+}
+
+/* --------------------------------------------------------------------------
+   Start menu
+   -------------------------------------------------------------------------- */
+.startmenu {
+  position: fixed;
+  bottom: calc(var(--taskbar-h) + 2px);
+  left: 2px;
+  z-index: 300;
+  display: flex;
+  width: 248px;
+  max-width: calc(100vw - 4px);
+  padding: 3px;
+  background: var(--frame);
+  border: 1px solid;
+  border-color: var(--frame-hi) var(--black) var(--black) var(--frame-hi);
+  box-shadow:
+    inset 1px 1px 0 var(--white),
+    inset -1px -1px 0 var(--edge-dark),
+    3px 3px 0 rgba(0, 0, 0, 0.3);
+}
+
+.startmenu__banner {
+  flex: 0 0 22px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 8px 0;
+  background: linear-gradient(180deg, var(--navy) 0%, #000044 100%);
+  color: #b9c4dd;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.6px;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.startmenu__right {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.startmenu__panel {
+  flex: 1 1 auto;
+  padding: 2px 2px 4px;
+}
+
+.startmenu__heading {
+  padding: 3px 5px 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-label);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.startmenu__list {
+  display: flex;
+  flex-direction: column;
+}
+
+.startmenu__app {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 4px 6px;
+  text-align: left;
+  font-size: 13px;
+  font-family: var(--font-body);
+}
+
+.startmenu__icon {
+  flex: 0 0 auto;
+  image-rendering: pixelated;
+}
+
+.startmenu__app:hover,
+.startmenu__app:focus-visible,
+.startmenu__lang:hover,
+.startmenu__lang:focus-visible {
+  background: var(--navy);
+  color: var(--white);
+}
+
+.startmenu__sep {
+  height: 2px;
+  margin: 4px 2px;
+  border-top: 1px solid var(--edge-dark);
+  border-bottom: 1px solid var(--white);
+}
+
+.startmenu__lang {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  width: 100%;
+  padding: 3px 6px;
+  text-align: left;
+  font-size: 13px;
+  font-family: var(--font-body);
+}
+
+.startmenu__lang-code {
+  flex: 0 0 auto;
+  width: 18px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-align: center;
+  border: 1px solid var(--edge-dark);
+  background: var(--frame-hi);
+  color: var(--text);
+}
+
+.startmenu__lang[aria-checked="true"] .startmenu__lang-name {
+  font-weight: 700;
+}
+
+.startmenu__lang[aria-checked="true"] .startmenu__lang-code {
+  background: var(--navy);
+  color: var(--white);
+}
+
+.startmenu__footer {
+  padding: 4px 6px 2px;
+  color: var(--text-muted);
+  font-size: 11px;
+  font-family: var(--font-body);
+  border-top: 1px solid var(--edge-dark);
+  box-shadow: inset 0 1px 0 var(--white);
+}
+
+/* --------------------------------------------------------------------------
+   Mascot dock — compact robot and speech bubble, lower right
+   -------------------------------------------------------------------------- */
+.mascot-root {
+  position: absolute;
+  right: 14px;
+  bottom: 12px;
+  z-index: 8;
+  max-width: min(232px, calc(100vw - 28px));
+  /* Never stands between the visitor and the desktop. */
+  pointer-events: none;
+}
+
+/* The two-step first-contact dialog is wider than an idle line, but still
+   belongs to the same bottom-right dock. */
+.mascot-root.is-dialog {
+  max-width: min(326px, calc(100vw - 28px));
+}
+
+/* Beside the active window: above the window layer, but below the Start menu
+   and the blocking tutorial overlay. The dialogue raises itself higher while
+   it is speaking. */
+.mascot-root.is-docked {
+  z-index: 400;
+  max-width: none;
+}
+
+/* The bubble leaves the normal column and hangs off the robot's right side.
+   Absolute positioning keeps the root's width equal to the figure, so the
+   dock's measured home corner does not move when a line opens. */
+.mascot.is-docked {
+  position: relative;
+  width: max-content;
+}
+
+.mascot.is-docked .mascot__bubble {
+  position: absolute;
+  top: 0;
+  right: auto;
+  bottom: auto;
+  left: calc(100% + 12px);
+  width: 210px;
+  max-width: none;
+}
+
+.mascot.is-docked.is-bubble-left .mascot__bubble {
+  right: calc(100% + 12px);
+  left: auto;
+}
+
+/* A bubble near the taskbar grows upward from the robot's feet instead. */
+.mascot.is-docked.is-bubble-up .mascot__bubble {
+  top: auto;
+  bottom: 0;
+}
+
+.mascot.is-docked .mascot__bubble.mascot__bubble--dialog {
+  width: 320px;
+}
+
+/* A very long localized line must not run off a short desktop. Tutorial copy
+   keeps its own existing scroll box. */
+.mascot.is-docked .mascot__bubble-body:not(.mascot__bubble-body--dialog) {
+  max-height: min(42vh, 300px);
+  padding-right: 2px;
+  overflow-y: auto;
+}
+
+/* Centered first-contact scene. The root is moved to the center-right of the
+   desktop; the dialog sits to the left of M.I.L.O. without covering him. */
+.mascot-root.is-intro {
+  left: calc(50% + 167px);
+  top: 50%;
+  right: auto;
+  bottom: auto;
+  max-width: none;
+  transform: translate(-50%, -50%);
+}
+
+.mascot.is-intro {
+  position: relative;
+}
+
+.mascot.is-intro .mascot__bubble {
+  position: absolute;
+  top: 50%;
+  right: calc(100% + 14px);
+  bottom: auto;
+  left: auto;
+  width: min(320px, calc(100vw - 32px));
+  max-width: none;
+  transform: translateY(-50%);
+}
+
+.mascot-root.is-intro .mascot {
+  will-change: transform;
+}
+
+.mascot {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.mascot__bubble {
+  width: 210px;
+  max-width: 100%;
+  padding: 3px 5px 5px;
+  background: #c9c9c3;
+  border: 1px solid #171b1a;
+  box-shadow:
+    inset 1px 1px 0 #f1f1ec,
+    inset -1px -1px 0 #8f918c,
+    2px 2px 0 rgba(0, 0, 0, 0.3);
+  /* The root is click-through; the bubble and robot opt back in. */
+  pointer-events: auto;
+}
+
+.mascot__bubble-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  margin-bottom: 3px;
+  padding-bottom: 2px;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.22);
+}
+
+.mascot__bubble-title {
+  margin: 0;
+  color: #0d5f4c;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+}
+
+.mascot__close {
+  width: 13px;
+  height: 13px;
+  flex: 0 0 auto;
+  padding: 0;
+  background: #c9c9c3;
+  color: #232725;
+  border: 1px solid #171b1a;
+  box-shadow:
+    inset 1px 1px 0 #f1f1ec,
+    inset -1px -1px 0 #8f918c;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.mascot__close:active {
+  box-shadow:
+    inset 1px 1px 0 #8f918c,
+    inset -1px -1px 0 #f1f1ec;
+}
+
+.mascot__bubble-body {
+  color: #232725;
+  font-size: 13px;
+  line-height: 1.4;
+  font-family: var(--font-body);
+}
+
+/* Tutorial mode: preserve the writer's paragraph breaks and keep long copy
+   inside a readable, scrollable region above the action button. */
+.mascot__bubble.mascot__bubble--dialog {
+  width: 320px;
+}
+
+.mascot__bubble-body--dialog {
+  max-height: min(54vh, 330px);
+  padding-right: 2px;
+  overflow-y: auto;
+  white-space: pre-line;
+}
+
+.mascot__actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 6px;
+  padding-top: 4px;
+  border-top: 1px solid rgba(0, 0, 0, 0.22);
+}
+
+.mascot__action {
+  min-width: 96px;
+  padding: 4px 10px;
+  background: #c9c9c3;
+  color: #232725;
+  font-family: var(--font-label);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.mascot__action:hover {
+  background: #d3d3cd;
+}
+
+/* Brief reaction to something that appeared on the desktop. Restrained on
+   purpose: the bubble changes colour and stirs, nothing jumps. */
+.mascot.is-alert .mascot__bubble {
+  border-color: #3d1b1b;
+  box-shadow:
+    inset 1px 1px 0 #f1e9e4,
+    inset -1px -1px 0 #9c8a86,
+    2px 2px 0 rgba(0, 0, 0, 0.35);
+}
+
+.mascot.is-alert .mascot__bubble-title {
+  color: #6b1f1f;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mascot__bubble.is-stirred {
+    animation: mascot-stir 520ms ease-out 1;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mascot.is-intro .mascot__bubble--dialog {
+    animation: mascot-dialog-in 220ms ease-out 1;
+  }
+
+  .mascot.is-intro .mascot__bubble.is-leaving {
+    opacity: 0;
+    transition: opacity 180ms ease-out;
+    pointer-events: none;
+  }
+}
+
+@keyframes mascot-dialog-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes mascot-stir {
+  0% {
+    transform: translateY(0);
+  }
+  30% {
+    transform: translateY(-1px);
+  }
+  60% {
+    transform: translateY(1px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* The robot itself: a compact cream companion that sits below the windows. */
+.mascot__figure {
+  position: relative;
+  width: 64px;
+  height: 80px;
+  padding: 0;
+  background: none;
+  border: 0;
+  /* The SVG floats a few pixels above its button box; never clip the antenna. */
+  overflow: visible;
+  pointer-events: auto;
+  cursor: default;
+}
+
+.mascot__figure:disabled {
+  opacity: 1;
+}
+
+.mascot__figure:not(:disabled) {
+  cursor: pointer;
+}
+
+.mascot__figure svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* The screen shutter is invisible at rest. Both halves close over the teal
+   display for a blink, so the robot's silhouette and face never distort. */
+.mascot__lid {
+  transform-box: fill-box;
+  transform: scaleY(0);
+}
+
+.mascot__lid--top {
+  transform-origin: top;
+}
+
+.mascot__lid--bottom {
+  transform-origin: bottom;
+}
+
+.mascot__figure:focus-visible {
+  outline: 1px dotted rgba(236, 246, 241, 0.85);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .mascot__figure svg {
+    animation: mascot-float 3.6s ease-in-out infinite;
+  }
+
+  .mascot__figure.is-paused svg {
+    animation-play-state: paused;
+  }
+
+  .mascot__figure.is-blinking .mascot__lid--top {
+    animation: mascot-blink-top 150ms ease-in-out;
+  }
+
+  .mascot__figure.is-blinking .mascot__lid--bottom {
+    animation: mascot-blink-bottom 150ms ease-in-out;
+  }
+}
+
+/* A worried face, for real discomfort only. The brows and the downturned mouth
+   are part of the drawing but transparent at rest, so M.I.L.O.'s usual look is
+   never rewritten — one class turns the expression on. */
+.mascot__worry {
+  opacity: 0;
+  transition: opacity 200ms ease-out;
+}
+
+.mascot.is-uneasy .mascot__worry {
+  opacity: 1;
+}
+
+.mascot__brow,
+.mascot__mouth-uneasy {
+  fill: none;
+  stroke: #101817;
+  stroke-width: 1.9;
+  stroke-linecap: round;
+}
+
+.mascot__mouth-uneasy {
+  stroke-width: 1.6;
+}
+
+/* A held, uneasy fidget — not a shiver. */
+@media (prefers-reduced-motion: no-preference) {
+  .mascot.is-uneasy .mascot__figure {
+    animation: mascot-unease 2.6s ease-in-out infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mascot.is-uneasy .mascot__figure {
+    transform: translateY(1px);
+  }
+}
+
+@keyframes mascot-unease {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  20% {
+    transform: translateY(1px) rotate(-0.5deg);
+  }
+  42% {
+    transform: translateY(0.6px) rotate(0.4deg);
+  }
+  64% {
+    transform: translateY(1px) rotate(-0.3deg);
+  }
+  82% {
+    transform: translateY(0.5px) rotate(0.2deg);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   TRITON glitch
+   A short, serious failure state. It uses no Twister particles, no corrupted
+   desktop patches and no blocking shield; the whole layer is temporary and
+   pointer-transparent.
+   -------------------------------------------------------------------------- */
+.mascot__glitch-ghost {
+  position: absolute;
+  inset: 0;
+  display: none;
+  pointer-events: none;
+}
+
+.mascot__glitch-ghost svg {
+  width: 100%;
+  height: 100%;
+}
+
+.mascot.is-glitching .mascot__glitch-ghost {
+  display: block;
+}
+
+.mascot.is-glitching .mascot__glitch-ghost--a {
+  opacity: 0.62;
+  filter:
+    drop-shadow(4px 0 0 rgba(255, 66, 74, 0.62))
+    drop-shadow(-3px 0 0 rgba(88, 235, 220, 0.55));
+  transform: translateX(4px);
+  animation: mascot-ghost-a 510ms steps(2, end) infinite;
+}
+
+.mascot.is-glitching .mascot__glitch-ghost--b {
+  opacity: 0.45;
+  filter:
+    drop-shadow(-5px 0 0 rgba(255, 66, 74, 0.45))
+    drop-shadow(3px 0 0 rgba(88, 235, 220, 0.5));
+  transform: translateX(-3px);
+  clip-path: polygon(
+    0 0, 100% 0, 100% 19%, 82% 19%, 82% 37%, 100% 37%, 100% 64%,
+    68% 64%, 68% 78%, 100% 78%, 100% 100%, 0 100%, 0 70%, 16% 70%,
+    16% 52%, 0 52%
+  );
+  animation: mascot-ghost-b 430ms steps(2, end) infinite;
+}
+
+.mascot.is-glitching .mascot__figure {
+  animation: mascot-glitch-body 360ms steps(1, end) infinite;
+}
+
+.mascot.is-glitching .mascot__bubble {
+  border-color: #5b2426;
+  box-shadow:
+    inset 1px 1px 0 #f1e9e4,
+    inset -1px -1px 0 #786c68,
+    2px 2px 0 rgba(0, 0, 0, 0.45);
+  animation: mascot-glitch-frame 620ms steps(1, end) infinite;
+}
+
+.mascot.is-glitching .mascot__bubble-title,
+.mascot.is-glitching .mascot__close {
+  opacity: 0.48;
+}
+
+.mascot.is-glitching .mascot__bubble-body {
+  color: #1d2c29;
+  text-shadow:
+    1px 0 0 rgba(184, 38, 44, 0.24),
+    -1px 0 0 rgba(38, 136, 127, 0.24);
+  animation: mascot-glitch-text 740ms steps(2, end) infinite;
+}
+
+.triton-glitch__screen {
+  position: absolute;
+  inset: 0;
+  z-index: 9995;
+  overflow: hidden;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(
+      0deg,
+      rgba(0, 0, 0, 0.14) 0 1px,
+      transparent 1px 4px
+    ),
+    linear-gradient(90deg, rgba(255, 47, 57, 0.04), transparent 18%, transparent 82%, rgba(64, 220, 205, 0.04));
+  opacity: 0.34;
+  animation: triton-screen 900ms steps(1, end) infinite;
+}
+
+.triton-glitch__screen::before,
+.triton-glitch__screen::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.triton-glitch__screen::before {
+  top: 26%;
+  height: 3px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(197, 250, 240, 0.28) 22%,
+    rgba(197, 250, 240, 0.08) 58%,
+    transparent
+  );
+  animation: triton-glitch-tear 1.9s steps(1, end) infinite;
+}
+
+.triton-glitch__screen::after {
+  bottom: 18%;
+  height: 7px;
+  background: rgba(4, 14, 13, 0.42);
+  animation: triton-glitch-band 1.4s steps(1, end) infinite;
+}
+
+.mascot-root.is-triton-scarred .mascot__figure svg {
+  filter:
+    saturate(0.82)
+    drop-shadow(0 0 1px rgba(123, 210, 203, 0.34));
+}
+
+@keyframes mascot-ghost-a {
+  0%,
+  100% {
+    transform: translate(3px, 0);
+  }
+  50% {
+    transform: translate(-5px, 1px);
+  }
+}
+
+@keyframes mascot-ghost-b {
+  0%,
+  100% {
+    transform: translate(-4px, 0);
+  }
+  50% {
+    transform: translate(5px, -1px);
+  }
+}
+
+@keyframes mascot-glitch-body {
+  0%,
+  100% {
+    transform: translate(0, 0) rotate(0deg);
+  }
+  12% {
+    transform: translate(-2px, 1px) rotate(-0.8deg);
+  }
+  24% {
+    transform: translate(2px, -1px) rotate(0.7deg);
+  }
+  36% {
+    transform: translate(-1px, 0) rotate(0deg);
+  }
+  48% {
+    transform: translate(4px, 1px) rotate(1deg);
+  }
+  60% {
+    transform: translate(-3px, -1px) rotate(-0.6deg);
+  }
+  74% {
+    transform: translate(1px, 0) rotate(0deg);
+  }
+  88% {
+    transform: translate(-2px, 1px) rotate(0.5deg);
+  }
+}
+
+@keyframes mascot-glitch-frame {
+  0%,
+  100% {
+    transform: translateX(0);
+    clip-path: none;
+  }
+  9% {
+    transform: translateX(2px);
+    clip-path: inset(4% 0 0 0);
+  }
+  11% {
+    transform: translateX(-1px);
+  }
+  34% {
+    transform: translateX(0);
+    clip-path: none;
+  }
+  52% {
+    transform: translateX(-3px);
+    clip-path: inset(0 0 8% 0);
+  }
+  54% {
+    transform: translateX(1px);
+  }
+  76% {
+    transform: translateX(0);
+    clip-path: none;
+  }
+}
+
+@keyframes mascot-glitch-text {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  7% {
+    transform: translateX(1px);
+    opacity: 0.72;
+  }
+  9% {
+    transform: translateX(-2px);
+    opacity: 1;
+  }
+  43% {
+    transform: translateX(0);
+  }
+  47% {
+    transform: translateX(2px);
+    opacity: 0.84;
+  }
+  49% {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes triton-screen {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  7% {
+    opacity: 0.48;
+  }
+  8% {
+    opacity: 0.24;
+  }
+  36% {
+    opacity: 0.4;
+  }
+  37% {
+    opacity: 0.2;
+  }
+  72% {
+    opacity: 0.45;
+  }
+  73% {
+    opacity: 0.27;
+  }
+}
+
+@keyframes triton-glitch-tear {
+  0%,
+  88% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  88.4% {
+    transform: translateY(180px);
+    opacity: 0.85;
+  }
+  89% {
+    opacity: 0;
+  }
+  91% {
+    transform: translateY(320px);
+    opacity: 0.55;
+  }
+  91.5% {
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+}
+
+@keyframes triton-glitch-band {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  41% {
+    transform: translateY(-220px);
+    opacity: 0;
+  }
+  41.3% {
+    transform: translateY(-120px);
+    opacity: 0.7;
+  }
+  42% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .shortcut-item.is-new,
+  .shortcut-item.is-new .shortcut__thumb,
+  .mascot.is-glitching .mascot__glitch-ghost,
+  .mascot.is-glitching .mascot__figure,
+  .mascot.is-glitching .mascot__bubble,
+  .mascot.is-glitching .mascot__bubble-body,
+  .triton-glitch__screen,
+  .triton-glitch__screen::before,
+  .triton-glitch__screen::after {
+    animation: none;
+  }
+
+  .mascot.is-glitching .mascot__glitch-ghost--a {
+    transform: translateX(3px);
+  }
+
+  .mascot.is-glitching .mascot__glitch-ghost--b {
+    transform: translateX(-3px);
+  }
+}
+
+@keyframes mascot-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-6px);
+  }
+}
+
+@keyframes mascot-blink-top {
+  0%,
+  100% {
+    transform: scaleY(0);
+  }
+  45%,
+  55% {
+    transform: scaleY(1);
+  }
+}
+
+@keyframes mascot-blink-bottom {
+  0%,
+  100% {
+    transform: scaleY(0);
+  }
+  45%,
+  55% {
+    transform: scaleY(1);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Twisters — small spring-bodied entities on the wallpaper
+   -------------------------------------------------------------------------- */
+
+/* Decorative layer: never blocks shortcuts, windows or the taskbar.
+   It sits above the window layer on purpose: a Twister belongs to the message
+   it arrived with, so no other program may paint over its avatar. */
+.twister-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 12;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.twister {
+  --twister-scale: 1;
+  --twister-head-hi: #2b4a42;
+  --twister-head-mid: #0a1e19;
+  --twister-head-lo: #020a08;
+  --twister-coil-hi: #a3bbb2;
+  --twister-coil-mid: #37574d;
+  --twister-coil-lo: #071512;
+  --twister-face: #e2eee7;
+  --twister-smoke: #d2e6de;
+  position: absolute;
+  width: 64px;
+  height: 102px;
+  color: var(--twister-face);
+  pointer-events: none;
+  user-select: none;
+  transform: scale(var(--twister-scale));
+  transform-origin: bottom center;
+}
+
+.twister__art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* --- paint ---------------------------------------------------------------- */
+.twister__head-stop-hi {
+  stop-color: var(--twister-head-hi);
+}
+
+.twister__head-stop-mid {
+  stop-color: var(--twister-head-mid);
+}
+
+.twister__head-stop-lo {
+  stop-color: var(--twister-head-lo);
+}
+
+.twister__coil-stop-hi {
+  stop-color: var(--twister-coil-hi);
+}
+
+.twister__coil-stop-mid {
+  stop-color: var(--twister-coil-mid);
+}
+
+.twister__coil-stop-lo {
+  stop-color: var(--twister-coil-lo);
+}
+
+.twister__core {
+  opacity: 0.55;
+}
+
+.twister__coil-base {
+  fill: none;
+  stroke: #02100d;
+  stroke-width: 8;
+  opacity: 0.8;
+}
+
+.twister__coil {
+  fill: none;
+  stroke-width: 4.6;
+}
+
+.twister__sphere {
+  stroke: rgba(96, 128, 117, 0.5);
+  stroke-width: 0.9;
+}
+
+.twister__neck {
+  fill: #081b17;
+  stroke: #29443c;
+  stroke-width: 1;
+}
+
+.twister__rim {
+  fill: none;
+  stroke: rgba(196, 226, 214, 0.4);
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.twister__glint {
+  fill: #d6ece3;
+  opacity: 0.12;
+}
+
+.twister__face {
+  fill: currentColor;
+}
+
+.twister__mouth-dark {
+  fill: #04110e;
+}
+
+.twister__tip {
+  fill: #0a211b;
+  stroke: rgba(126, 160, 148, 0.35);
+  stroke-width: 0.8;
+}
+
+.twister__wisp {
+  fill: none;
+  stroke: var(--twister-smoke);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  opacity: 0.16;
+}
+
+/* --- states --------------------------------------------------------------- */
+.twister[data-state="thought"] {
+  --twister-face: #d6e4dd;
+  --twister-smoke: #c8ddd5;
+}
+
+.twister[data-state="thought"] .twister__wisp {
+  opacity: 0.18;
+}
+
+.twister[data-state="unsettling"] {
+  --twister-scale: 1.06;
+  --twister-head-hi: #263a35;
+  --twister-head-mid: #081410;
+  --twister-head-lo: #010604;
+  --twister-coil-hi: #8d9f98;
+  --twister-coil-mid: #2b403a;
+  --twister-coil-lo: #06120f;
+  --twister-face: #e6caca;
+  --twister-smoke: #e0c6c6;
+}
+
+.twister[data-state="unsettling"] .twister__wisp {
+  opacity: 0.2;
+}
+
+/* --- motion --------------------------------------------------------------- */
+.twister__figure,
+.twister__head,
+.twister__eyes,
+.twister__wisp {
+  transform-box: fill-box;
+}
+
+.twister__figure {
+  transform-origin: 50% 100%;
+}
+
+.twister__head {
+  transform-origin: 50% 88%;
+}
+
+.twister__eyes {
+  transform-origin: 50% 50%;
+}
+
+.twister__wisp {
+  transform-origin: 50% 50%;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .twister__figure {
+    animation: twister-breathe 5.8s ease-in-out infinite;
+  }
+
+  .twister__head {
+    animation: twister-sway 7.6s ease-in-out infinite;
+  }
+
+  .twister__eyes {
+    animation: twister-blink 8.4s steps(1, end) infinite;
+  }
+
+  .twister__wisp--1 {
+    animation: twister-drift 8.6s ease-in-out infinite;
+  }
+
+  .twister__wisp--2 {
+    animation: twister-drift 10.6s ease-in-out -3.4s infinite;
+  }
+
+  .twister__wisp--3 {
+    animation: twister-drift 9.4s ease-in-out -6.2s infinite;
+  }
+
+  .twister.is-arriving .twister__art {
+    animation: twister-arrive 720ms cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+}
+
+@keyframes twister-breathe {
+  0%,
+  100% {
+    transform: scaleY(1);
+  }
+  46% {
+    transform: scaleY(0.982);
+  }
+  62% {
+    transform: scaleY(1.008);
+  }
+}
+
+@keyframes twister-sway {
+  0%,
+  100% {
+    transform: rotate(-1.6deg);
+  }
+  35% {
+    transform: rotate(1.1deg);
+  }
+  70% {
+    transform: rotate(-0.4deg);
+  }
+}
+
+@keyframes twister-blink {
+  0%,
+  92%,
+  100% {
+    transform: scaleY(1);
+  }
+  94%,
+  96% {
+    transform: scaleY(0.12);
+  }
+}
+
+@keyframes twister-drift {
+  0%,
+  100% {
+    opacity: 0.03;
+    transform: translateY(4px);
+  }
+  30% {
+    opacity: 0.28;
+  }
+  72% {
+    opacity: 0.1;
+    transform: translateY(-4px);
+  }
+  90% {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes twister-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Dragging
+   -------------------------------------------------------------------------- */
+html.is-dragging,
+html.is-dragging * {
+  cursor: default !important;
+  user-select: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   Desktop corruption — the small traces a Twister leaves behind
+   Under the icons (z-index 2), so no label, control or hit area is lost.
+   -------------------------------------------------------------------------- */
+.corruption-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+/* Missing texture — an opaque, grid-aligned block of broken data where the
+   desktop's own surface should be. No gradients, no blur, no transparency. */
+.pixel-patch {
+  position: absolute;
+  pointer-events: none;
+  z-index: 1;
+  image-rendering: pixelated;
+  /* No fade: the texture is simply not there, then it is. */
+  opacity: 1;
+}
+
+.pixel-patch__cell {
+  position: absolute;
+  display: block;
+  /* The seam between blocks: a hard 1px line, not a soft edge. */
+  box-shadow: inset -1px -1px 0 rgba(2, 11, 10, 0.92);
+  transition: visibility 0s linear var(--erase-delay, 0ms);
+}
+
+/* A handful of bad sectors step between two opaque colours. */
+.pixel-patch__cell.is-live {
+  animation: pixel-blink 2600ms steps(2, end) infinite;
+}
+
+/* Cleaning pops whole blocks out, nearest the brush first. */
+.pixel-patch__cell.is-gone {
+  visibility: hidden;
+}
+
+@keyframes pixel-blink {
+  0%,
+  100% {
+    background-color: #164a44;
+  }
+  50% {
+    background-color: #7bd2cb;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-patch__cell {
+    transition: none;
+  }
+
+  .pixel-patch__cell.is-live {
+    animation: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Tutorial dialogues
+   The dialogue owns the desktop until its last step is acknowledged: a shield
+   swallows every click behind it, and the bubble (z-index 9999) stays on top.
+   -------------------------------------------------------------------------- */
+.tutorial-shield {
+  position: fixed;
+  inset: 0;
+  z-index: 9996;
+  background: rgba(3, 14, 12, 0.34);
+  cursor: default;
+  touch-action: none;
+}
+
+body.is-tutorial .mascot__close {
+  display: none;
+}
+
+.mascot.is-tutorial .mascot__figure {
+  cursor: default;
+}
+
+/* Emphasis in M.I.L.O.'s dialogue: key terms and actions only. */
+.mascot__bubble-body strong {
+  font-weight: 700;
+}
+
+/* --------------------------------------------------------------------------
+   Collectible desktop items — the .wav file and the tool it unlocks
+   -------------------------------------------------------------------------- */
+/* A second icon column, beside the program shortcuts and above the wallpaper
+   traces. Its own layer: the shortcut list is full and must keep scrolling. */
+.desktop-files {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+}
+
+.deskfile-item {
+  position: absolute;
+  width: 96px;
+  pointer-events: auto;
+}
+
+.deskfile__thumb {
+  position: relative;
+  /* The "new" badge sits on the rim of the medallion. */
+  overflow: visible;
+}
+
+.deskfile {
+  /* A dragged file owns the pointer; no native panning or text selection. */
+  touch-action: none;
+}
+
+.deskfile__badge {
+  position: absolute;
+  top: -5px;
+  right: -7px;
+  padding: 0 3px;
+  color: #062018;
+  font-family: var(--font-label);
+  font-size: 7px;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  background: #7bd2cb;
+  border: 1px solid #062018;
+}
+
+.deskfile.is-new .deskfile__thumb {
+  animation: deskfile-glow 3.2s ease-in-out infinite;
+}
+
+.deskfile.is-dragging {
+  opacity: 0.45;
+}
+
+.deskfile.is-collected {
+  animation: deskfile-collect 460ms ease-out forwards;
+}
+
+.deskfile:disabled {
+  cursor: default;
+}
+
+@keyframes deskfile-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 0 2px rgba(123, 210, 203, 0.25);
+  }
+  50% {
+    box-shadow: 0 0 0 4px rgba(123, 210, 203, 0.5);
+  }
+}
+
+@keyframes deskfile-collect {
+  0% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  55% {
+    opacity: 0.85;
+    transform: scale(1.12);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(0.72);
+  }
+}
+
+/* The icon that follows the pointer while a file is being dragged. */
+.file-ghost {
+  position: fixed;
+  z-index: 9998;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  width: 96px;
+  padding: 4px;
+  color: #eef7f2;
+  pointer-events: none;
+  transform: translate(-50%, -50%);
+  background: rgba(9, 32, 28, 0.55);
+  border: 1px dashed rgba(190, 246, 235, 0.5);
+  transition: opacity 120ms linear;
+}
+
+.file-ghost__label {
+  font-family: var(--font-body);
+  font-size: 10px;
+  text-align: center;
+}
+
+.file-ghost.is-absorbed {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.6);
+}
+
+html.is-file-dragging,
+html.is-file-dragging * {
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+/* The brush ring. It never blocks a click: cleaning is decided by the pointer
+   position, not by hit testing. */
+.brush {
+  position: absolute;
+  z-index: 9;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.brush__ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: var(--brush-ring, 56px);
+  height: var(--brush-ring, 56px);
+  border: 1px dashed rgba(196, 246, 238, 0.72);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  box-shadow:
+    0 0 0 1px rgba(6, 20, 18, 0.35),
+    inset 0 0 12px rgba(123, 210, 203, 0.26);
+}
+
+.brush__core {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  color: #eafffb;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  opacity: 0.85;
+  transform: translate(-50%, -50%);
+}
+
+.brush.is-armed .brush__ring {
+  border-style: solid;
+  box-shadow:
+    0 0 0 1px rgba(6, 20, 18, 0.4),
+    0 0 14px rgba(123, 210, 203, 0.5),
+    inset 0 0 14px rgba(123, 210, 203, 0.32);
+}
+
+.desktop.is-brush-active {
+  cursor: crosshair;
+  /* Cleaning owns the press: no text selection, no native icon drag. Only the
+     armed brush adds this, so normal desktop interaction is untouched. */
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.desktop.is-brush-active .shortcut,
+.desktop.is-brush-active .deskfile {
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.desktop.is-brush-active .window,
+.desktop.is-brush-active .mascot,
+.desktop.is-brush-active .shortcut {
+  cursor: default;
+}
+
+/* The ring must stay visible while the brush is used inside a registered
+   program surface. It is still pointer-transparent. */
+.desktop.is-brush-active .brush {
+  z-index: 9998;
+}
+
+.desktop.is-brush-active .window [data-cleanable] {
+  cursor: none;
+}
+
+@media (max-width: 560px) {
+  .deskfile-item {
+    width: 76px;
+  }
+
+  .file-ghost {
+    width: 80px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .deskfile.is-new .deskfile__thumb,
+  .deskfile.is-collected {
+    animation: none;
+  }
+
+  .tasktool.is-fresh {
+    animation: none;
+    outline: 1px dotted #1b4b46;
+    outline-offset: -4px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Small screens: keep the desktop readable, keep the chrome intact
+   -------------------------------------------------------------------------- */
+@media (max-width: 560px) {
+  .shortcuts {
+    padding: 7px 2px 5px;
+  }
+
+  .shortcuts__list {
+    gap: 4px;
+  }
+
+  .shortcut-item {
+    width: 76px;
+  }
+
+  .shortcut__thumb {
+    width: 40px;
+    height: 40px;
+  }
+
+  .shortcut__icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .shortcut__label {
+    font-size: 8px;
+    max-width: 74px;
+  }
+
+  .mascot-root {
+    right: 8px;
+    bottom: 6px;
+  }
+
+  .mascot__bubble,
+  .mascot.is-docked .mascot__bubble {
+    width: 168px;
+  }
+
+  .mascot.is-docked .mascot__bubble.mascot__bubble--dialog {
+    width: min(320px, calc(100vw - 96px));
+  }
+
+  .mascot__bubble-body {
+    font-size: 10px;
+  }
+
+  .mascot-root.is-dialog {
+    max-width: calc(100vw - 16px);
+  }
+
+  /* Stack the scene on narrow screens: dialog above, M.I.L.O. below. */
+  .mascot-root.is-intro {
+    left: 50%;
+    top: 62%;
+  }
+
+  .mascot.is-intro .mascot__bubble {
+    top: auto;
+    right: auto;
+    bottom: calc(100% + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .mascot__figure {
+    width: 52px;
+    height: 65px;
+  }
+
+  .task {
+    flex: 1 1 0;
+    max-width: none;
+  }
+
+  .startmenu {
+    width: 214px;
+  }
+
+  .taskbar__tray {
+    padding: 0 4px;
+  }
+}
+
+@media (max-width: 560px) and (max-height: 430px) {
+  .mascot-root.is-intro {
+    top: 66%;
+  }
+
+  .mascot.is-intro .mascot__bubble-body--dialog {
+    max-height: 30vh;
+  }
+}
+
+@media (max-height: 520px) {
+  .shortcuts {
+    padding: 4px 2px;
+  }
+
+  .shortcuts__list {
+    gap: 3px;
+  }
+
+  .shortcut-item {
+    width: 76px;
+  }
+
+  .shortcut__thumb {
+    width: 34px;
+    height: 34px;
+  }
+
+  .shortcut__icon {
+    width: 19px;
+    height: 19px;
+  }
+
+  .shortcut {
+    gap: 2px;
+    padding: 1px 0 2px;
+  }
+
+  .shortcut__label {
+    font-size: 8px;
+  }
+
+  /* Stay visible, just tighter: the robot keeps its feet above the taskbar. */
+  .mascot-root {
+    right: 6px;
+    bottom: 4px;
+  }
+
+  .mascot__bubble,
+  .mascot.is-docked .mascot__bubble {
+    width: 160px;
+    padding: 2px 4px 4px;
+  }
+
+  .mascot.is-docked .mascot__bubble.mascot__bubble--dialog {
+    width: min(300px, calc(100vw - 88px));
+  }
+
+  .mascot__bubble-body {
+    font-size: 10px;
+    line-height: 1.25;
+  }
+
+  .mascot__figure {
+    width: 46px;
+    height: 58px;
+  }
+}
+
+/* --------------------------------------------------------------------------
+   Tutorial marker — contextual circular guidance
+   --------------------------------------------------------------------------
+   JS positions this over a live element (a taskbar tool button or a real
+   corruption patch), so it is never tied to a fixed screen coordinate. It is
+   pointer-transparent and removed as soon as its context ends.
+   -------------------------------------------------------------------------- */
+.tutorial-marker {
+  position: fixed;
+  z-index: 9997;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 200ms ease;
+}
+
+.tutorial-marker.is-visible {
+  opacity: 1;
+}
+
+.tutorial-marker__ring {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid rgba(191, 243, 236, 0.9);
+  box-shadow:
+    0 0 0 1px rgba(3, 16, 14, 0.55),
+    0 0 16px rgba(123, 210, 203, 0.35);
+}
+
+.tutorial-marker.is-visible .tutorial-marker__ring {
+  animation: tutorial-marker-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes tutorial-marker-pulse {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tutorial-marker.is-visible .tutorial-marker__ring {
+    animation: none;
+  }
+}
