@@ -76,6 +76,40 @@
   font-family: var(--font-body);
 }
 
+/* The chosen desktop file, mirrored here while the collection is open. */
+.music__selection {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  margin-bottom: 3px;
+  padding: 3px 4px 3px 6px;
+  color: #21302d;
+  font-size: 11px;
+  background: #d8e2df;
+}
+
+.music__selection[hidden] {
+  display: none;
+}
+
+.music__selection-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.music__selection-cancel {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  font-size: 14px;
+  line-height: 1;
+}
+
 .music__slots {
   display: grid;
   flex: 1 1 auto;

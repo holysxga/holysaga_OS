@@ -1643,8 +1643,34 @@ body.is-tutorial .mascot__close {
 
 .deskfile-item {
   position: absolute;
+  top: calc(16px + var(--file-row, 0) * 104px);
+  left: calc(112px + var(--file-col, 0) * 104px);
   width: 96px;
   pointer-events: auto;
+}
+
+/* Selection cancel: a small, deliberate target on the chosen file only. */
+.deskfile__cancel {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  z-index: 2;
+  display: none;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  color: #f4f2e8;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  line-height: 1;
+  background: #1d2b28;
+  border: 1px solid #7bd2cb;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.55);
+  transform: translateX(22px);
+}
+
+.deskfile-item.is-selected .deskfile__cancel {
+  display: grid;
 }
 
 .deskfile__thumb {

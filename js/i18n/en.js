@@ -86,6 +86,8 @@ export const en = {
   "music.mutedValue": "muted",
   "music.slotDropHint": "Drag the matching .wav file onto the track.",
   "music.tapCollectHint": "Tap the .wav file, then tap its matching track.",
+  "music.selectedFile": "Selected file: {name}",
+  "music.cancelSelection": "Cancel selection",
   "music.slotWrongFile": "This file does not match this track.",
   "music.slotEmptyHint": "Drop the file here to collect this track.",
   "music.futureNote":
@@ -425,6 +427,7 @@ I don't know whether we're trying to escape the water or simply watching it rise
   "file.region": "Desktop files",
   "file.dragHint": "Drag it to the MUSIC PLAYER collection",
   "file.tapHint": "Tap to choose it, then tap the collection",
+  "file.cancelSelection": "Cancel selection",
   "sacred.file.name": "Sacred Digital.wav",
   "sacred.tool.name": "Sacred Digital",
   "sacred.tool.hint": "Clean corruption from the desktop",

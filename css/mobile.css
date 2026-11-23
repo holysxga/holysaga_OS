@@ -470,6 +470,125 @@ body {
 }
 
 /* --------------------------------------------------------------------------
+   Compact workspaces — phones, landscape phones and touch tablets
+   --------------------------------------------------------------------------
+   The window manager sizes compact windows from the live workspace (82% ×
+   68%, 70% high on short screens) and parks them in the lower-right corner.
+   This block only lays out what has to stay reachable above them: the
+   collectible file strip, the desktop shortcuts and the safe-area insets.
+   -------------------------------------------------------------------------- */
+
+@media (max-width: 680px), (max-height: 520px), (pointer: coarse) and (max-width: 1100px) {
+  .desktop {
+    padding: 0;
+  }
+
+  /* Windows are positioned inside this layer, so its insets are the usable
+     viewport: nothing can slide under a notch, a rounded corner or the bar. */
+  .window-layer {
+    top: var(--safe-top);
+    right: var(--safe-right);
+    bottom: 0;
+    left: var(--safe-left);
+  }
+
+  /* Collectible files become a compact strip along the top edge, always in
+     the band the window leaves free. The inline column positions are overridden
+     by flow layout. */
+  .desktop-files {
+    top: calc(var(--safe-top) + 3px);
+    right: max(3px, var(--safe-right));
+    bottom: auto;
+    left: max(3px, var(--safe-left));
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 4px;
+    padding: 1px;
+    z-index: 7;
+  }
+
+  .deskfile-item {
+    /* Flow layout, but still the positioning context for the cancel button. */
+    position: relative;
+    top: auto;
+    left: auto;
+    width: 68px;
+  }
+
+  .deskfile .shortcut__thumb {
+    width: 38px;
+    height: 38px;
+  }
+
+  .deskfile .shortcut__icon {
+    width: 22px;
+    height: 22px;
+  }
+
+  .deskfile .shortcut__label {
+    max-width: 66px;
+    font-size: 9px;
+    line-height: 1.2;
+  }
+
+  .deskfile__cancel {
+    top: 0;
+    width: 26px;
+    height: 26px;
+    font-size: 16px;
+    transform: translateX(16px);
+  }
+
+  /* There is no free side strip to dock M.I.L.O. into on a compact workspace.
+     Keep the open window above him so neither his bubble nor his figure can
+     cover a slot, a resize edge or the close button; he stays visible in any
+     desktop area the window leaves free. */
+  .mascot-root.is-docked {
+    z-index: 4;
+  }
+
+  .shortcuts {
+    padding-top: 82px;
+  }
+
+  /* The only program-area chrome that may scroll inside a short window. */
+  .window {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .window__body {
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .music__selection-text {
+    white-space: normal;
+  }
+
+  .music__selection-cancel {
+    width: 32px;
+    height: 28px;
+    font-size: 16px;
+  }
+}
+
+/* Portrait phones wrap the six files into two rows; start the program column
+   below the strip so the second row never covers a shortcut. */
+@media (max-width: 680px) and (min-height: 521px) {
+  .shortcuts {
+    padding-top: 136px;
+  }
+}
+
+/* A short landscape window cannot fit every music control at its desktop
+   height. The body scrolls instead of clipping the transport. */
+@media (max-height: 520px) {
+  .window[data-app-id="music"] .window__body {
+    overflow-y: auto;
+  }
+}
+
+/* --------------------------------------------------------------------------
    OUTSIDER.EXE — touch surface
    -------------------------------------------------------------------------- */
 

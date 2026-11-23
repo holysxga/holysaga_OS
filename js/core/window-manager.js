@@ -8,6 +8,7 @@
  * to change.
  */
 import { el } from "./dom.js";
+import { isCoarsePointer } from "./input.js";
 import { onLocaleChange, t } from "../i18n/index.js";
 
 const MARGIN = 10;
@@ -15,9 +16,19 @@ const MIN_WIDTH = 290;
 const MIN_HEIGHT = 170;
 const CASCADE_STEP = 28;
 const CASCADE_LIMIT = 6;
-/* Below this workspace width a window takes the whole layer instead of its
-   preferred size: on a phone there is no spare desktop to arrange windows on. */
-const NARROW_WIDTH = 680;
+/* Compact layout: phones, landscape phones and touch tablets. The window keeps
+   a strip of desktop visible instead of covering the workspace. */
+const COMPACT_WIDTH = 680;
+const COMPACT_HEIGHT = 520;
+const TOUCH_TABLET_WIDTH = 1100;
+const MOBILE_WIDTH_RATIO = 0.82;
+const MOBILE_HEIGHT_RATIO = 0.68;
+const MOBILE_SHORT_HEIGHT_RATIO = 0.7;
+const MOBILE_MARGIN = 8;
+const MIN_TOUCH_WIDTH = 232;
+const MIN_TOUCH_HEIGHT = 150;
+
+const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
 export function createWindowManager({ layer, services = {} }) {
   const records = new Map();
@@ -25,6 +36,9 @@ export function createWindowManager({ layer, services = {} }) {
   let activeId = null;
   let topZ = 100;
   let cascade = 0;
+  /* One window gesture at a time: a second finger must never start another
+     move or resize under the first. */
+  let gestureActive = false;
 
   function list() {
     return [...records.values()]
@@ -55,6 +69,54 @@ export function createWindowManager({ layer, services = {} }) {
     return { width: rect.width, height: rect.height };
   }
 
+  /**
+   * Mobile sizing is chosen by the available workspace, never by a device
+   * name. A narrow or short workspace is compact, and so is a touch tablet:
+   * its windows are still sized around the icons the visitor has to reach.
+   */
+  function isCompact() {
+    const { width, height } = layerSize();
+    return (
+      width < COMPACT_WIDTH ||
+      height < COMPACT_HEIGHT ||
+      (isCoarsePointer() && width < TOUCH_TABLET_WIDTH)
+    );
+  }
+
+  function minimums(compact) {
+    return compact
+      ? { w: MIN_TOUCH_WIDTH, h: MIN_TOUCH_HEIGHT }
+      : { w: MIN_WIDTH, h: MIN_HEIGHT };
+  }
+
+  /**
+   * The one sizing rule for every program. Desktop keeps its preferred size;
+   * compact keeps 82% of the workspace width and 68% of its height (70% on a
+   * short landscape screen), always leaving desktop room around the window.
+   * Dialogs are alerts, not programs, and keep their authored size.
+   */
+  function defaultSize(app, width, height, compact) {
+    const pref = app.size;
+    const margin = compact ? MOBILE_MARGIN : MARGIN;
+    const min = minimums(compact);
+    const maxW = Math.max(min.w, width - margin * 2);
+    const maxH = Math.max(min.h, height - margin * 2);
+
+    if (app.kind === "dialog") {
+      return { w: Math.min(pref.w, maxW), h: Math.min(pref.h, maxH) };
+    }
+    if (!compact) {
+      return { w: Math.min(pref.w, maxW), h: Math.min(pref.h, maxH) };
+    }
+
+    const short = height < COMPACT_HEIGHT;
+    const w = Math.round(width * MOBILE_WIDTH_RATIO);
+    const h = Math.round(
+      height * (short ? MOBILE_SHORT_HEIGHT_RATIO : MOBILE_HEIGHT_RATIO),
+    );
+    return { w: clamp(w, min.w, maxW), h: clamp(h, min.h, maxH) };
+  }
+
   /** Keep a window fully reachable: inside the layer when it fits, pinned otherwise. */
   function clampRecord(rec) {
     if (rec.minimized) return;
@@ -73,11 +135,18 @@ export function createWindowManager({ layer, services = {} }) {
   function layout(rec) {
     if (rec.minimized) return;
     const { width, height } = layerSize();
-    const maxW = Math.max(MIN_WIDTH, width - MARGIN * 2);
-    const maxH = Math.max(MIN_HEIGHT, height - MARGIN * 2);
-    const narrow = width < NARROW_WIDTH;
-    rec.win.style.width = `${narrow ? maxW : Math.min(rec.pref.w, maxW)}px`;
-    rec.win.style.height = `${narrow ? maxH : Math.min(rec.pref.h, maxH)}px`;
+    const compact = isCompact();
+    const min = minimums(compact);
+    const size = rec.manual
+      ? {
+          w: clamp(rec.w || rec.pref.w, min.w, Math.max(min.w, width)),
+          h: clamp(rec.h || rec.pref.h, min.h, Math.max(min.h, height)),
+        }
+      : defaultSize(rec.app, width, height, compact);
+    rec.w = Math.round(size.w);
+    rec.h = Math.round(size.h);
+    rec.win.style.width = `${rec.w}px`;
+    rec.win.style.height = `${rec.h}px`;
     clampRecord(rec);
   }
 
@@ -95,9 +164,12 @@ export function createWindowManager({ layer, services = {} }) {
   }
 
   function startDrag(event, rec) {
+    if (gestureActive) return;
     if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (!event.isPrimary) return;
     if (event.target.closest("button")) return;
     event.preventDefault();
+    gestureActive = true;
 
     const startX = event.clientX;
     const startY = event.clientY;
@@ -117,6 +189,78 @@ export function createWindowManager({ layer, services = {} }) {
       window.removeEventListener("pointerup", onEnd);
       window.removeEventListener("pointercancel", onEnd);
       document.documentElement.classList.remove("is-dragging");
+      gestureActive = false;
+    };
+
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onEnd);
+    window.addEventListener("pointercancel", onEnd);
+  }
+
+  /**
+   * Resize from an edge or corner. Pointer events give mouse and touch the same
+   * path; the handles are invisible hit areas so the Win98 frame stays thin.
+   * The window can never leave the layer or shrink past its usable minimum.
+   */
+  function startResize(event, rec, edge) {
+    if (gestureActive) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    if (!event.isPrimary) return;
+    event.preventDefault();
+    event.stopPropagation();
+    gestureActive = true;
+
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const startLeft = rec.left;
+    const startTop = rec.top;
+    const startW = rec.win.offsetWidth;
+    const startH = rec.win.offsetHeight;
+    const { width: layerW, height: layerH } = layerSize();
+    const min = minimums(isCompact());
+    const maxW = Math.max(min.w, layerW - startLeft);
+    const maxH = Math.max(min.h, layerH - startTop);
+
+    document.documentElement.classList.add("is-resizing");
+
+    const onMove = (moveEvent) => {
+      if (!moveEvent.isPrimary) return;
+      const dx = moveEvent.clientX - startX;
+      const dy = moveEvent.clientY - startY;
+      let left = startLeft;
+      let top = startTop;
+      let width = startW;
+      let height = startH;
+
+      if (edge.includes("e")) width = clamp(startW + dx, min.w, maxW);
+      if (edge.includes("s")) height = clamp(startH + dy, min.h, maxH);
+      if (edge.includes("w")) {
+        left = clamp(startLeft + dx, 0, startLeft + startW - min.w);
+        width = startW + (startLeft - left);
+      }
+      if (edge.includes("n")) {
+        top = clamp(startTop + dy, 0, startTop + startH - min.h);
+        height = startH + (startTop - top);
+      }
+
+      rec.left = Math.round(left);
+      rec.top = Math.round(top);
+      rec.w = Math.round(width);
+      rec.h = Math.round(height);
+      rec.win.style.left = `${rec.left}px`;
+      rec.win.style.top = `${rec.top}px`;
+      rec.win.style.width = `${rec.w}px`;
+      rec.win.style.height = `${rec.h}px`;
+    };
+
+    const onEnd = () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onEnd);
+      window.removeEventListener("pointercancel", onEnd);
+      document.documentElement.classList.remove("is-resizing");
+      gestureActive = false;
+      rec.manual = true;
+      clampRecord(rec);
     };
 
     window.addEventListener("pointermove", onMove);
@@ -199,12 +343,13 @@ export function createWindowManager({ layer, services = {} }) {
       [titlebar, body],
     );
 
-    // Desktop placement: centered-ish on wide screens, stacked on narrow ones.
+    // Desktop placement: centered-ish on wide screens. Compact windows sit in
+    // the lower-right corner, leaving the desktop's top strip — where the
+    // collectible files live — visible and tappable beside MUSIC PLAYER.
     const prefW = app.size.w;
     const prefH = app.size.h;
-    const width = Math.min(prefW, Math.max(MIN_WIDTH, layerW - MARGIN * 2));
-    const height = Math.min(prefH, Math.max(MIN_HEIGHT, layerH - MARGIN * 2));
-    const narrow = layerW < NARROW_WIDTH;
+    const compact = isCompact();
+    const initial = defaultSize(app, layerW, layerH, compact);
     let left;
     let top;
 
@@ -212,13 +357,14 @@ export function createWindowManager({ layer, services = {} }) {
       // The caller chose a spot (alerts scatter); clamping still applies.
       left = app.placement.left;
       top = app.placement.top;
+    } else if (compact && !isDialog) {
+      left = layerW - initial.w - MOBILE_MARGIN;
+      top = layerH - initial.h - MOBILE_MARGIN;
     } else {
       const step = (cascade % CASCADE_LIMIT) * CASCADE_STEP;
       cascade += 1;
-      // Narrow desktops use the whole workspace: one window at a time is the
-      // only sane stacking on a phone, and the taskbar still switches them.
-      left = narrow ? MARGIN : Math.round((layerW - width) / 2) - 72 + step;
-      top = narrow ? MARGIN : Math.round((layerH - height) / 2) - 56 + step;
+      left = Math.round((layerW - initial.w) / 2) - 72 + step;
+      top = Math.round((layerH - initial.h) / 2) - 56 + step;
     }
 
     const rec = {
@@ -229,11 +375,30 @@ export function createWindowManager({ layer, services = {} }) {
       minimizeBtn,
       closeBtn,
       pref: { w: prefW, h: prefH },
+      w: initial.w,
+      h: initial.h,
       left: Math.max(0, left),
       top: Math.max(0, top),
+      manual: false,
       minimized: false,
       cleanup: null,
     };
+
+    // Invisible resize hit areas. Dialogs are alerts and stay fixed-size; every
+    // program gets all eight edges and corners.
+    if (!isDialog) {
+      for (const edge of ["n", "s", "e", "w", "ne", "nw", "se", "sw"]) {
+        const handle = el("div", {
+          class: `window__resize window__resize--${edge}`,
+          dataset: { resize: edge },
+          "aria-hidden": "true",
+        });
+        handle.addEventListener("pointerdown", (event) =>
+          startResize(event, rec, edge),
+        );
+        win.append(handle);
+      }
+    }
 
     titlebar.addEventListener("pointerdown", (event) => {
       focus(app.id);

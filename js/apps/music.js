@@ -367,6 +367,30 @@ export const musicApp = {
         grid.append(el("div", { class: "music__cell", role: "listitem" }, [slot]));
       }
 
+      // The file chosen on the desktop (tap-to-collect) stays visible here so
+      // the visitor can always see, and cancel, what the next slot tap will use.
+      const selectionText = el("span", { class: "music__selection-text" });
+      const selectionCancel = el(
+        "button",
+        {
+          class: "music__selection-cancel raised",
+          type: "button",
+          text: "×",
+          on: {
+            click: () => {
+              ctx.files?.selectFile?.(null);
+              paint();
+            },
+          },
+        },
+        [],
+      );
+      const selection = el(
+        "div",
+        { class: "music__selection sunken", hidden: true },
+        [selectionText, selectionCancel],
+      );
+
       const nowTitle = el("span", { class: "music__now-title" });
       const nowState = el("span", { class: "music__now-state" });
       const now = el("div", { class: "music__now" }, [
@@ -491,6 +515,7 @@ export const musicApp = {
           class: "music__grid-hint",
           text: t(isCoarsePointer() ? "music.tapCollectHint" : "music.slotDropHint"),
         }),
+        selection,
         grid,
         now,
         el("div", { class: "music__transport" }, [
@@ -514,6 +539,9 @@ export const musicApp = {
 
       refs = {
         slots,
+        selection,
+        selectionText,
+        selectionCancel,
         nowTitle,
         nowState,
         prev,
@@ -590,6 +618,16 @@ export const musicApp = {
       const unlocked = unlockedTracks();
       const shown = selectedTrack();
       const duration = playback.trackId === view.selectedId ? playback.duration : 0;
+
+      const chosen = ctx.files?.getSelected?.() || null;
+      refs.selection.hidden = !chosen;
+      if (chosen) {
+        refs.selectionText.textContent = t("music.selectedFile", {
+          name: t(chosen.nameKey),
+        });
+        refs.selectionCancel.title = t("music.cancelSelection");
+        refs.selectionCancel.setAttribute("aria-label", t("music.cancelSelection"));
+      }
 
       refs.count.textContent = t("music.trackCount", { n: tracks.length });
       refs.unlockedCount.textContent = t("music.unlockedCount", {
@@ -689,6 +727,10 @@ export const musicApp = {
     paint();
 
     const stopPlayer = player.subscribe(paint);
+    // The desktop file service announces selection changes; the window mirrors
+    // them without rebuilding, so a tap on a file never closes or reopens it.
+    const onFileSelection = () => paint();
+    window.addEventListener("holysaga:file-selection", onFileSelection);
     const stopProgress = progression.subscribe(() => {
       // A discovery makes any earlier "still locked" message obsolete.
       view.notice = null;
@@ -720,6 +762,7 @@ export const musicApp = {
       stopPlayer();
       stopProgress();
       stopLocale();
+      window.removeEventListener("holysaga:file-selection", onFileSelection);
     };
   },
 };

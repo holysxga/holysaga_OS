@@ -76,14 +76,23 @@ export function createDesktopFiles(options = {}) {
     entry.name.textContent = name;
     entry.button.setAttribute("aria-label", `${name}. ${hint}`);
     entry.button.title = `${name} — ${hint}`;
+    const cancelLabel = t("file.cancelSelection");
+    entry.cancel.title = cancelLabel;
+    entry.cancel.setAttribute("aria-label", `${name}. ${cancelLabel}`);
   }
 
   /** Visual selection only: choosing a file never collects it. */
   function setSelected(id) {
     selectedId = id && files.has(id) ? id : null;
     for (const entry of files.values()) {
-      entry.button.classList.toggle("is-selected", entry.id === selectedId);
+      const active = entry.id === selectedId;
+      entry.button.classList.toggle("is-selected", active);
+      entry.item.classList.toggle("is-selected", active);
     }
+    // MUSIC PLAYER mirrors the chosen file and offers the same cancel action.
+    window.dispatchEvent(
+      new CustomEvent("holysaga:file-selection", { detail: { id: selectedId } }),
+    );
   }
 
   function addFile({ id, trackId, nameKey = "sacred.file.name" } = {}) {
@@ -117,16 +126,38 @@ export function createDesktopFiles(options = {}) {
       },
       [icon, name],
     );
+    const cancel = el(
+      "button",
+      {
+        class: "deskfile__cancel",
+        type: "button",
+        text: "×",
+      },
+      [],
+    );
+    cancel.addEventListener("pointerdown", (event) => {
+      // Cancel is its own control: it never starts a drag or chooses the file.
+      event.preventDefault();
+      event.stopPropagation();
+    });
+    cancel.addEventListener("click", (event) => {
+      event.stopPropagation();
+      setSelected(null);
+    });
 
     // Files stack downward in a second column; the first one sits beside the
-    // program shortcuts, where nothing can cover it.
+    // program shortcuts, where nothing can cover it. Compact layouts reflow
+    // this list into a strip and override these coordinates in CSS.
     const index = files.size;
-    const item = el("div", { class: "deskfile-item", role: "listitem" }, [button]);
-    item.style.left = `${112 + Math.floor(index / 3) * 104}px`;
-    item.style.top = `${16 + (index % 3) * 104}px`;
+    const item = el("div", { class: "deskfile-item", role: "listitem" }, [
+      button,
+      cancel,
+    ]);
+    item.style.setProperty("--file-col", String(Math.floor(index / 3)));
+    item.style.setProperty("--file-row", String(index % 3));
     host.append(item);
 
-    const entry = { id, trackId, item, button, name, nameKey };
+    const entry = { id, trackId, item, button, cancel, name, nameKey };
     files.set(id, entry);
     paintFile(entry);
 
@@ -148,8 +179,14 @@ export function createDesktopFiles(options = {}) {
   function collectFile(id) {
     const entry = files.get(id);
     if (!entry) return false;
-    if (selectedId === id) selectedId = null;
+    const wasSelected = selectedId === id;
+    if (wasSelected) selectedId = null;
     files.delete(id);
+    if (wasSelected) {
+      window.dispatchEvent(
+        new CustomEvent("holysaga:file-selection", { detail: { id: null } }),
+      );
+    }
     entry.button.classList.add("is-collected");
     entry.button.disabled = true;
     setTimeout(() => {

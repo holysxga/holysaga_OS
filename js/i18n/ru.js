@@ -86,6 +86,8 @@ export const ru = {
   "music.mutedValue": "без звука",
   "music.slotDropHint": "Перетащите подходящий .wav-файл на дорожку.",
   "music.tapCollectHint": "Коснитесь файла .wav, затем нужной дорожки.",
+  "music.selectedFile": "Выбранный файл: {name}",
+  "music.cancelSelection": "Отменить выбор",
   "music.slotWrongFile": "Этот файл не подходит к этой дорожке.",
   "music.slotEmptyHint": "Отпустите файл здесь, чтобы получить эту дорожку.",
   "music.futureNote":
@@ -425,6 +427,7 @@ export const ru = {
   "file.region": "Файлы рабочего стола",
   "file.dragHint": "Перетащите в коллекцию MUSIC PLAYER",
   "file.tapHint": "Коснитесь, чтобы выбрать, затем коснитесь коллекции",
+  "file.cancelSelection": "Отменить выбор",
   "sacred.file.name": "Sacred Digital.wav",
   "sacred.tool.name": "Sacred Digital",
   "sacred.tool.hint": "Очистить рабочий стол от повреждений",

@@ -77,6 +77,10 @@
 }
 
 .window__controls {
+  position: relative;
+  /* Above the resize hit areas: the close button must always win a tap, even
+     when a corner handle reaches into the title bar. */
+  z-index: 6;
   flex: 0 0 auto;
   display: flex;
   gap: 2px;
@@ -145,6 +149,144 @@
 
 .window__body > * {
   min-height: 0;
+}
+
+/* --------------------------------------------------------------------------
+   Resize hit areas
+   --------------------------------------------------------------------------
+   Invisible, so the visible Win98 border stays one pixel. Pointer events give
+   mouse and touch the same path; the coarse-pointer block below widens every
+   edge and corner without changing how the frame looks.
+   -------------------------------------------------------------------------- */
+
+.window__resize {
+  position: absolute;
+  z-index: 4;
+  touch-action: none;
+}
+
+.window__resize--n,
+.window__resize--s {
+  right: 14px;
+  left: 14px;
+  height: 8px;
+  cursor: ns-resize;
+}
+
+.window__resize--n {
+  top: -2px;
+}
+
+.window__resize--s {
+  bottom: -2px;
+}
+
+.window__resize--e,
+.window__resize--w {
+  top: 14px;
+  bottom: 14px;
+  width: 8px;
+  cursor: ew-resize;
+}
+
+.window__resize--e {
+  right: -2px;
+}
+
+.window__resize--w {
+  left: -2px;
+}
+
+.window__resize--ne,
+.window__resize--nw,
+.window__resize--se,
+.window__resize--sw {
+  width: 18px;
+  height: 18px;
+}
+
+.window__resize--ne {
+  top: -4px;
+  right: -4px;
+  cursor: nesw-resize;
+}
+
+.window__resize--nw {
+  top: -4px;
+  left: -4px;
+  cursor: nwse-resize;
+}
+
+.window__resize--se {
+  right: -4px;
+  bottom: -4px;
+  cursor: nwse-resize;
+}
+
+.window__resize--sw {
+  bottom: -4px;
+  left: -4px;
+  cursor: nesw-resize;
+}
+
+@media (pointer: coarse) {
+  .window__resize--n,
+  .window__resize--s {
+    right: 22px;
+    left: 22px;
+    height: 18px;
+  }
+
+  .window__resize--n {
+    top: -6px;
+  }
+
+  .window__resize--s {
+    bottom: -6px;
+  }
+
+  .window__resize--e,
+  .window__resize--w {
+    top: 22px;
+    bottom: 22px;
+    width: 18px;
+  }
+
+  .window__resize--e {
+    right: -6px;
+  }
+
+  .window__resize--w {
+    left: -6px;
+  }
+
+  .window__resize--ne,
+  .window__resize--nw,
+  .window__resize--se,
+  .window__resize--sw {
+    width: 30px;
+    height: 30px;
+  }
+
+  .window__resize--ne {
+    top: -8px;
+    right: -8px;
+  }
+
+  .window__resize--nw {
+    top: -8px;
+    left: -8px;
+  }
+
+  .window__resize--se {
+    right: -8px;
+    bottom: -8px;
+  }
+
+  .window__resize--sw {
+    bottom: -8px;
+    left: -8px;
+  }
 }
 
 /* --------------------------------------------------------------------------
